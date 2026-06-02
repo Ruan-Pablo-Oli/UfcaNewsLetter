@@ -1,0 +1,23 @@
+---
+name: "📖 Nova User Story"
+about: "Template para criar uma nova funcionalidade seguindo a estrutura Ágil"
+title: "[US-XX] Breve título da funcionalidade"
+labels: ["enhancement"]
+assignees: ""
+---
+
+## 📖 História de Usuário
+**Como um** [tipo de utilizador/persona], 
+**quero** [algum objetivo/solução] 
+**para que** [alguma razão/problema seja resolvido].
+
+## ✅ Critérios de Aceitação
+*(Condições que o Product Owner testará para dar a tarefa como "Done")*
+- [ ] Critério 1
+- [ ] Critério 2
+
+## 🛠️ Tarefas Técnicas (Sub-tasks)
+*(Checklist para a equipe de desenvolvimento)*
+- [ ] Tarefa backend
+- [ ] Tarefa frontend
+- [ ] Integração
