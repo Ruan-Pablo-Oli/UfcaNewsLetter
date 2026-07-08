@@ -128,7 +128,9 @@ class TestFeedback:
     def test_create(self):
         user = _make_user()
         conteudo = _make_conteudo()
-        feedback = Feedback.objects.create(usuario=user, conteudo=conteudo, tipo=Feedback.Tipo.POSITIVO)
+        feedback = Feedback.objects.create(
+            usuario=user, conteudo=conteudo, tipo=Feedback.Tipo.POSITIVO
+        )
 
         assert feedback in user.feedbacks.all()
         assert feedback in conteudo.feedbacks.all()
@@ -140,4 +142,6 @@ class TestFeedback:
 
         with pytest.raises(IntegrityError):
             with transaction.atomic():
-                Feedback.objects.create(usuario=user, conteudo=conteudo, tipo=Feedback.Tipo.NEGATIVO)
+                Feedback.objects.create(
+                    usuario=user, conteudo=conteudo, tipo=Feedback.Tipo.NEGATIVO
+                )
