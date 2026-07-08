@@ -1,5 +1,6 @@
 """Entidades centrais do domínio da UFCA Newsletter."""
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -18,13 +19,55 @@ class Interesse(models.Model):
 class Perfil(models.Model):
     """Perfil acadêmico de um usuário do sistema."""
 
+    class Curso(models.TextChoices):
+        """Cursos de graduação atualmente oferecidos pela UFCA."""
+
+        ADMINISTRACAO = "administracao", "Administração"
+        AGRONOMIA = "agronomia", "Agronomia"
+        ARQUITETURA_E_URBANISMO = "arquitetura_e_urbanismo", "Arquitetura e Urbanismo"
+        BIOMEDICINA = "biomedicina", "Biomedicina"
+        CIENCIA_DA_COMPUTACAO = "ciencia_da_computacao", "Ciência da Computação"
+        CIENCIAS_BIOLOGICAS = "ciencias_biologicas", "Ciências Biológicas"
+        CIENCIAS_ECONOMICAS = "ciencias_economicas", "Ciências Econômicas"
+        DESIGN = "design", "Design"
+        DIREITO = "direito", "Direito"
+        EDUCACAO_FISICA = "educacao_fisica", "Educação Física"
+        ENFERMAGEM = "enfermagem", "Enfermagem"
+        ENGENHARIA_CIVIL = "engenharia_civil", "Engenharia Civil"
+        ENGENHARIA_DE_PRODUCAO = "engenharia_de_producao", "Engenharia de Produção"
+        ENGENHARIA_DE_SOFTWARE = "engenharia_de_software", "Engenharia de Software"
+        ENGENHARIA_MECANICA = "engenharia_mecanica", "Engenharia Mecânica"
+        ESTATISTICA = "estatistica", "Estatística"
+        FARMACIA = "farmacia", "Farmácia"
+        FISICA = "fisica", "Física"
+        FISIOTERAPIA = "fisioterapia", "Fisioterapia"
+        GEOGRAFIA = "geografia", "Geografia"
+        HISTORIA = "historia", "História"
+        LETRAS = "letras", "Letras"
+        MATEMATICA = "matematica", "Matemática"
+        MEDICINA = "medicina", "Medicina"
+        MEDICINA_VETERINARIA = "medicina_veterinaria", "Medicina Veterinária"
+        NUTRICAO = "nutricao", "Nutrição"
+        ODONTOLOGIA = "odontologia", "Odontologia"
+        PEDAGOGIA = "pedagogia", "Pedagogia"
+        PSICOLOGIA = "psicologia", "Psicologia"
+        QUIMICA = "quimica", "Química"
+        SERVICO_SOCIAL = "servico_social", "Serviço Social"
+        SISTEMAS_DE_INFORMACAO = "sistemas_de_informacao", "Sistemas de Informação"
+        ZOOTECNIA = "zootecnia", "Zootecnia"
+
+    MIN_INTERESSES = 1
+    MAX_INTERESSES = 5
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="perfil",
     )
-    curso = models.CharField(max_length=150)
-    periodo = models.PositiveSmallIntegerField()
+    curso = models.CharField(max_length=150, choices=Curso.choices, blank=True)
+    periodo = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(20)],
+    )
     interesses = models.ManyToManyField(
         Interesse,
         related_name="perfis",
