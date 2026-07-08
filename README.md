@@ -8,6 +8,8 @@
 |---|---|
 | Python | 3.12-slim |
 | Django | 6.0.x |
+| PostgreSQL | 16 |
+| psycopg | 3.2.x |
 | requests | 2.34.x |
 | beautifulsoup4 | 4.15.x |
 | lxml | 6.1.x |
@@ -19,20 +21,43 @@
 | Serviço | Porta | Descrição |
 |---|---|---|
 | `web` | `8000` | Aplicação Django |
+| `db` | `5432` | PostgreSQL 16 |
+
+### Variáveis de ambiente
+
+A configuração é feita por variáveis de ambiente. Copie o arquivo de exemplo antes de subir o projeto:
+
+```bash
+cp .env.example .env
+```
+
+| Variável | Descrição | Padrão |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | Chave secreta do Django | — (defina um valor único) |
+| `DJANGO_DEBUG` | Ativa modo debug (`True`/`False`) | `True` |
+| `DJANGO_ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula | `*` |
+| `POSTGRES_DB` | Nome do banco | `ufcanewsletter` |
+| `POSTGRES_USER` | Usuário do banco | `ufcanewsletter` |
+| `POSTGRES_PASSWORD` | Senha do banco | — (defina um valor único) |
+| `POSTGRES_HOST` | Host do banco | `db` |
+| `POSTGRES_PORT` | Porta do banco | `5432` |
+
+O `.env` não é versionado (está no `.gitignore`); `make up` cria um automaticamente a partir do `.env.example` caso ainda não exista.
 
 ### Como usar
 
 ```bash
 make build    # constrói a imagem
-make up       # sobe o container
+make up       # sobe web + Postgres e aplica as migrações
 make logs     # acompanha os logs
 make shell    # bash interativo no container
-make down     # derruba o container
+make down     # derruba os containers
 ```
 
 Ou diretamente com Docker Compose:
 
 ```bash
+cp .env.example .env
 docker compose up -d
 ```
 
@@ -44,7 +69,9 @@ docker compose up -d
   compose.yaml
   requirements.txt
   Makefile
-  README.md   
-  app/   # código da aplicação (próximas entregas)
-
+  README.md
+  .env.example
+  app/                    # código da aplicação Django
+    manage.py
+    ufcanewsletter/       # settings, urls, wsgi, asgi
 ```
