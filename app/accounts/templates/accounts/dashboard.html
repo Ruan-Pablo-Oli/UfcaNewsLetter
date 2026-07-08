@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Painel</title>
+</head>
+<body>
+  <h1>Olá, {{ user.username }}</h1>
+  <p>Papel: {{ papel }}</p>
+  <p>Curso: {{ perfil.curso|default:"-" }}</p>
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit">Sair</button>
+  </form>
+</body>
+</html>
