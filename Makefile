@@ -1,12 +1,15 @@
 .PHONY: up down build logs restart ps shell
 
+.env:
+	cp .env.example .env
+
 up: build
 	docker compose up -d
 
 down:
 	docker compose down
 
-build:
+build: .env
 	docker compose build
 
 logs:
