@@ -68,10 +68,42 @@ docker compose up -d
   Dockerfile
   compose.yaml
   requirements.txt
+  requirements-dev.txt
+  pyproject.toml
   Makefile
   README.md
   .env.example
   app/                    # código da aplicação Django
     manage.py
     ufcanewsletter/       # settings, urls, wsgi, asgi
+      tests/              # testes automatizados (pytest)
 ```
+
+## Testes
+
+Os testes usam `pytest` + `pytest-django`.
+
+### Rodando localmente
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+```
+
+Os testes que acessam o banco de dados precisam de um PostgreSQL disponível (as mesmas variáveis de ambiente do `.env.example`). Para rodar apenas a suíte, com Docker Compose de apoio:
+
+```bash
+docker compose up -d db
+pytest
+```
+
+### Lint
+
+```bash
+ruff check .
+```
+
+### CI
+
+O workflow do GitHub Actions (`.github/workflows/tests.yml`) roda `pytest` e `ruff` em todo `push` e `pull_request`, subindo um serviço PostgreSQL para os testes que dependem de banco.
