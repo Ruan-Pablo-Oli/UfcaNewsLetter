@@ -1,5 +1,14 @@
 # UFCA Newsletter
 
+## Documentação
+
+A documentação técnica e de processo fica em [`docs/`](docs/):
+
+- [Arquitetura](docs/arquitetura.md) — stack, apps, modelo de dados (diagrama ER), autenticação e rotas
+- [Decisões (ADRs)](docs/decisoes.md) — o *porquê* das principais escolhas técnicas
+- [Fluxo de trabalho](docs/fluxo-de-trabalho.md) — ambiente local, testes, PR/CI, agente `@claude`
+- [Rastreabilidade](docs/rastreabilidade.md) — matriz User Story → issue → PR → status
+
 ## Docker
 
 ### Stack
@@ -75,8 +84,9 @@ docker compose up -d
   .env.example
   app/                    # código da aplicação Django
     manage.py
-    ufcanewsletter/       # settings, urls, wsgi, asgi
-      tests/              # testes automatizados (pytest)
+    ufcanewsletter/       # projeto: settings, urls, wsgi, asgi
+    newsletter/           # app de domínio: modelos das entidades
+    accounts/             # app de autenticação: cadastro, login, perfil
 ```
 
 ## Testes
