@@ -104,6 +104,25 @@ class TestConteudo:
             with transaction.atomic():
                 _make_conteudo(hash_dedup="hash-repetido")
 
+    def test_personalizacao_defaults(self):
+        conteudo = _make_conteudo()
+
+        assert conteudo.universal is False
+        assert conteudo.cursos == []
+        assert list(conteudo.interesses.all()) == []
+
+    def test_personalizacao_pode_ser_direcionada(self):
+        interesse = Interesse.objects.create(nome="Editais")
+        conteudo = _make_conteudo(hash_dedup="hash-direcionado")
+        conteudo.cursos = [Perfil.Curso.DIREITO]
+        conteudo.interesses.add(interesse)
+        conteudo.save()
+
+        conteudo.refresh_from_db()
+        assert conteudo.cursos == [Perfil.Curso.DIREITO]
+        assert interesse in conteudo.interesses.all()
+        assert conteudo in interesse.conteudos.all()
+
 
 class TestEntrega:
     def test_create(self):

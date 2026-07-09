@@ -66,6 +66,7 @@ erDiagram
     PERFIL }o--o{ INTERESSE : "segue"
     CATEGORIA ||--o{ CONTEUDO : "classifica"
     FONTE ||--o{ CONTEUDO : "origina"
+    CONTEUDO }o--o{ INTERESSE : "é direcionado a"
     CONTEUDO ||--o{ ENTREGA : "gera"
     USER ||--o{ ENTREGA : "recebe"
     CONTEUDO ||--o{ FEEDBACK : "recebe"
@@ -102,6 +103,8 @@ erDiagram
         int fonte_id FK
         string hash_dedup UK
         datetime criado_em
+        boolean universal "visível para todos os perfis, ignora curso/interesses"
+        string[] cursos "cursos-alvo (array Postgres); vazio = nenhum específico"
     }
     ENTREGA {
         int id PK
@@ -126,6 +129,12 @@ erDiagram
 - `Conteudo.hash_dedup` é único → deduplicação de conteúdo coletado.
 - `Entrega` é única por (`conteudo`, `usuario`, `canal`); `Feedback` é único por
   (`usuario`, `conteudo`).
+- **Personalização do feed** (`Conteudo.universal`, `Conteudo.cursos`,
+  `Conteudo.interesses`, ver `newsletter/feed.py`): um conteúdo aparece no feed
+  de um `Perfil` se for `universal=True`, **ou** se `Perfil.curso` estiver em
+  `Conteudo.cursos`, **ou** se houver interseção entre `Perfil.interesses` e
+  `Conteudo.interesses`. Conteúdo não-universal sem curso/interesses associados
+  não aparece para ninguém (precisa de direcionamento explícito).
 
 > O diagrama pode ser regenerado a partir do código com
 > `django-extensions` (`python manage.py graph_models newsletter`).
@@ -148,3 +157,5 @@ erDiagram
 | `/accounts/signup/` | Cadastro de estudante | Público |
 | `/accounts/login/` `/accounts/logout/` | Login / logout | Público / autenticado |
 | `/accounts/dashboard/` | Área autenticada de exemplo (mostra o papel) | Autenticado |
+| `/accounts/perfil/` | Preenchimento e edição do perfil acadêmico | Autenticado |
+| `/feed/` | Feed de conteúdo personalizado (JSON, paginado — `?page=`/`?page_size=`) | Autenticado |
