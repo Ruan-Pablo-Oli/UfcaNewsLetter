@@ -1,5 +1,6 @@
 """Entidades centrais do domínio da UFCA Newsletter."""
 from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -142,6 +143,23 @@ class Conteudo(models.Model):
         help_text="Hash usado para deduplicação de conteúdo.",
     )
     criado_em = models.DateTimeField(auto_now_add=True)
+    universal = models.BooleanField(
+        default=False,
+        help_text="Se marcado, o conteúdo aparece no feed de todos os perfis "
+        "(ex.: avisos institucionais), ignorando curso e interesses.",
+    )
+    cursos = ArrayField(
+        models.CharField(max_length=150, choices=Perfil.Curso.choices),
+        blank=True,
+        default=list,
+        help_text="Cursos aos quais o conteúdo é direcionado. Vazio = nenhum curso específico.",
+    )
+    interesses = models.ManyToManyField(
+        Interesse,
+        related_name="conteudos",
+        blank=True,
+        help_text="Interesses aos quais o conteúdo é direcionado.",
+    )
 
     class Meta:
         ordering = ["-data_publicacao"]

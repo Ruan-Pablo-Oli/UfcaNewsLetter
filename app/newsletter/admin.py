@@ -31,9 +31,10 @@ class FonteAdmin(admin.ModelAdmin):
 
 @admin.register(Conteudo)
 class ConteudoAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "categoria", "fonte", "data_publicacao")
-    list_filter = ("categoria", "fonte")
+    list_display = ("titulo", "categoria", "fonte", "data_publicacao", "universal")
+    list_filter = ("categoria", "fonte", "universal")
     search_fields = ("titulo", "corpo", "hash_dedup")
+    filter_horizontal = ("interesses",)
 
 
 @admin.register(Entrega)
