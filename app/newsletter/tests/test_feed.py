@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 
-from newsletter.models import Categoria, Conteudo, Fonte, Interesse, Perfil
+from newsletter.models import Categoria, Conteudo, Feedback, Fonte, Interesse, Perfil
 
 pytestmark = pytest.mark.django_db
 
@@ -140,6 +140,91 @@ class TestFeedMotivo:
 
         item = response.json()["results"][0]
         assert "editais" in item["motivo"].lower()
+
+
+class TestFeedAjusteDeRelevancia:
+    def test_conteudo_marcado_como_irrelevante_some_do_feed(self, client):
+        user = _make_user_with_perfil()
+        conteudo = _make_conteudo("r1", universal=True)
+        Feedback.objects.create(usuario=user, conteudo=conteudo, tipo=Feedback.Tipo.NEGATIVO)
+        client.force_login(user)
+
+        response = client.get(reverse("feed"))
+
+        titulos = [item["titulo"] for item in response.json()["results"]]
+        assert "Conteúdo r1" not in titulos
+
+    def test_categoria_com_feedback_positivo_e_priorizada_na_ordenacao(self, client):
+        user = _make_user_with_perfil()
+        categoria_curtida = _make_categoria(Categoria.Tipo.EDITAL)
+        categoria_neutra = _make_categoria(Categoria.Tipo.COMUNICADO)
+        agora = timezone.now()
+
+        conteudo_curtido_antigo = _make_conteudo(
+            "antigo",
+            universal=True,
+            categoria=categoria_curtida,
+            data_publicacao=agora - timezone.timedelta(days=1),
+        )
+        _make_conteudo(
+            "recente",
+            universal=True,
+            categoria=categoria_neutra,
+            data_publicacao=agora,
+        )
+        Feedback.objects.create(
+            usuario=user, conteudo=conteudo_curtido_antigo, tipo=Feedback.Tipo.POSITIVO
+        )
+        # outro conteúdo da categoria curtida, ainda sem feedback
+        _make_conteudo(
+            "novo_da_categoria_curtida",
+            universal=True,
+            categoria=categoria_curtida,
+            data_publicacao=agora - timezone.timedelta(hours=1),
+        )
+        client.force_login(user)
+
+        response = client.get(reverse("feed"))
+
+        titulos = [item["titulo"] for item in response.json()["results"]]
+        # mesmo sendo mais antigo, o conteúdo de categoria curtida vem antes do
+        # conteúdo mais recente de categoria sem histórico de feedback
+        assert titulos.index("Conteúdo novo_da_categoria_curtida") < titulos.index(
+            "Conteúdo recente"
+        )
+
+    def test_categoria_com_feedback_negativo_e_rebaixada_na_ordenacao(self, client):
+        user = _make_user_with_perfil()
+        categoria_rejeitada = _make_categoria(Categoria.Tipo.PRAZO)
+        categoria_neutra = _make_categoria(Categoria.Tipo.COMUNICADO)
+        agora = timezone.now()
+
+        conteudo_rejeitado_original = _make_conteudo(
+            "rejeitado_original", universal=True, categoria=categoria_rejeitada
+        )
+        Feedback.objects.create(
+            usuario=user, conteudo=conteudo_rejeitado_original, tipo=Feedback.Tipo.NEGATIVO
+        )
+        _make_conteudo(
+            "mesma_categoria_rejeitada",
+            universal=True,
+            categoria=categoria_rejeitada,
+            data_publicacao=agora,
+        )
+        _make_conteudo(
+            "categoria_neutra",
+            universal=True,
+            categoria=categoria_neutra,
+            data_publicacao=agora - timezone.timedelta(hours=1),
+        )
+        client.force_login(user)
+
+        response = client.get(reverse("feed"))
+
+        titulos = [item["titulo"] for item in response.json()["results"]]
+        assert titulos.index("Conteúdo categoria_neutra") < titulos.index(
+            "Conteúdo mesma_categoria_rejeitada"
+        )
 
 
 class TestFeedPaginacao:
