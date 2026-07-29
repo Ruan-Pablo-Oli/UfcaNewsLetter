@@ -32,17 +32,28 @@ def _make_fonte():
     )[0]
 
 
+_CATEGORIA_NAO_INFORMADA = object()
+
+
 def _make_conteudo(hash_dedup, cursos=None, interesses=None, universal=False, **kwargs):
+    categoria = kwargs.pop("categoria", _CATEGORIA_NAO_INFORMADA)
+    if categoria is _CATEGORIA_NAO_INFORMADA:
+        categoria = _make_categoria()
+
     dados = {
         "titulo": kwargs.pop("titulo", f"Conteúdo {hash_dedup}"),
         "corpo": "Corpo do conteúdo.",
         "resumo": "Resumo.",
         "data_publicacao": kwargs.pop("data_publicacao", timezone.now()),
-        "categoria": kwargs.pop("categoria", None) or _make_categoria(),
+        "categoria": categoria,
         "fonte": kwargs.pop("fonte", None) or _make_fonte(),
         "hash_dedup": hash_dedup,
         "universal": universal,
         "cursos": cursos or [],
+        # Estes testes cobrem filtragem por curso/interesse/relevância, não a fila
+        # de moderação — por isso já nascem aprovados. A fila é coberta à parte
+        # em TestFeedStatus.
+        "status": kwargs.pop("status", Conteudo.Status.APROVADO),
     }
     dados.update(kwargs)
     conteudo = Conteudo.objects.create(**dados)
@@ -140,6 +151,47 @@ class TestFeedMotivo:
 
         item = response.json()["results"][0]
         assert "editais" in item["motivo"].lower()
+
+
+class TestFeedStatus:
+    def test_conteudo_pendente_nao_aparece_no_feed(self, client):
+        user = _make_user_with_perfil()
+        _make_conteudo("p1", universal=True, status=Conteudo.Status.PENDENTE)
+        client.force_login(user)
+
+        response = client.get(reverse("feed"))
+
+        assert response.json()["results"] == []
+
+    def test_conteudo_descartado_nao_aparece_no_feed(self, client):
+        user = _make_user_with_perfil()
+        _make_conteudo("d1", universal=True, status=Conteudo.Status.DESCARTADO)
+        client.force_login(user)
+
+        response = client.get(reverse("feed"))
+
+        assert response.json()["results"] == []
+
+    def test_conteudo_aprovado_aparece_no_feed(self, client):
+        user = _make_user_with_perfil()
+        _make_conteudo("a1", universal=True, status=Conteudo.Status.APROVADO)
+        client.force_login(user)
+
+        response = client.get(reverse("feed"))
+
+        titulos = [item["titulo"] for item in response.json()["results"]]
+        assert "Conteúdo a1" in titulos
+
+    def test_conteudo_sem_categoria_aparece_no_feed_com_categoria_nula(self, client):
+        user = _make_user_with_perfil()
+        _make_conteudo("sc1", universal=True, categoria=None)
+        client.force_login(user)
+
+        response = client.get(reverse("feed"))
+
+        item = response.json()["results"][0]
+        assert item["titulo"] == "Conteúdo sc1"
+        assert item["categoria"] is None
 
 
 class TestFeedAjusteDeRelevancia:

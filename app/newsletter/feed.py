@@ -60,7 +60,7 @@ def feed_queryset_for_perfil(perfil):
     ).values_list("conteudo_id", flat=True)
 
     queryset = (
-        Conteudo.objects.filter(filtro)
+        Conteudo.objects.filter(filtro, status=Conteudo.Status.APROVADO)
         .exclude(id__in=conteudos_irrelevantes)
         .distinct()
         .select_related("categoria", "fonte")

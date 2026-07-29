@@ -41,7 +41,7 @@ def feed(request):
             "id": conteudo.id,
             "titulo": conteudo.titulo,
             "resumo": conteudo.resumo,
-            "categoria": conteudo.categoria.nome,
+            "categoria": conteudo.categoria.nome if conteudo.categoria else None,
             "fonte": conteudo.fonte.nome,
             "data_publicacao": conteudo.data_publicacao.isoformat(),
             "universal": conteudo.universal,

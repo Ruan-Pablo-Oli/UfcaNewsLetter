@@ -88,3 +88,57 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
   do agente **não tem permissão `workflows`**, então arquivos em
   `.github/workflows/` precisam ser adicionados manualmente. A segurança se apoia
   em "só o dono aciona" + revisão humana no merge.
+
+## ADR-008 — Agendamento das coletas: management command + cron
+
+- **Status:** proposta (issue #52) — decisão de infraestrutura ainda não
+  ratificada pelo time; registrada aqui para destravar #16 (coletor), #24 (job
+  de envio do digest) e #22 (disparo de push), que dependem de *alguma* forma
+  de "rodar algo a cada N minutos" existir.
+- **Contexto:** o coletor da #16 precisa varrer as `Fonte` ativas
+  periodicamente, respeitando `Fonte.intervalo_coleta` e atualizando
+  `Fonte.ultima_coleta` a cada execução bem-sucedida. É o mesmo tipo de
+  necessidade do envio do digest (#24) e do disparo de push (#22): um
+  agendador que dispare tarefas em intervalos, sem interação do usuário.
+- **Alternativas consideradas:**
+  1. **Celery + broker (Redis) + worker dedicado.** Padrão de mercado para
+     filas de tarefas assíncronas, com retry, agendamento (`celery beat`) e
+     monitoramento maduros.
+     - Contras: exige subir um serviço novo (Redis) no `compose.yaml`, um
+       processo `worker` (e possivelmente um `beat`) separado do `web`, mais
+       variáveis de ambiente, e mais superfície de CI (novo serviço nos
+       workflows) — tudo isso para um caso de uso que hoje é só "rodar a cada
+       N minutos". Curva de configuração desproporcional ao volume atual
+       (poucas fontes, coleta pouco frequente).
+  2. **`django-crontab` / `django-apscheduler`** (agendador embutido no
+     processo Django).
+     - Contras: acopla o agendamento ao ciclo de vida do processo `web`
+       (reinício do container derruba o agendamento; múltiplas réplicas do
+       `web` duplicariam a execução sem coordenação extra); menos
+       transparente para depurar do que "rodar um comando e ver o log".
+  3. **Management command (`python manage.py coletar`, `enviar_digest`,
+     etc.) + `cron`** — cada tarefa periódica é um comando Django comum,
+     testável isoladamente com `call_command` (como já se faz em
+     `test_seed_conteudos.py`), disparado de fora do processo web por um
+     agendador simples.
+- **Decisão (recomendação em aberto):** opção 3. Cada necessidade periódica
+  (coleta, digest, push) vira um management command; a orquestração de
+  *quando* rodar fica fora do código da aplicação, em um agendador simples.
+- **Consequências:**
+  - Ganho: zero infraestrutura nova para o volume atual; cada comando é
+    testável sozinho via `call_command`, sem precisar simular um worker;
+    "arrancar" para Celery mais tarde (se o volume justificar) é migração,
+    não reescrita — os management commands continuam existindo, só passam a
+    ser chamados por tasks Celery em vez de por cron.
+  - Custo: sem retry/backoff automático, sem fila de prioridade, sem
+    monitoramento de execução pronto — se algo disso vier a ser necessário
+    antes do volume justificar Celery, precisa ser construído à mão.
+  - **Em aberto para o time decidir:** onde o cron roda no ambiente local —
+    um serviço `scheduler` próprio no `compose.yaml` (ex.: imagem baseada em
+    `ofelia`/`supercronic`, ou um container simples com `cron` do sistema
+    operacional chamando `docker compose exec web python manage.py ...`) vs.
+    cron do host do desenvolvedor (mais simples, porém não reproduz o
+    ambiente de todo mundo igual). Também em aberto: como testar sem esperar
+    o `intervalo_coleta` — a proposta é os comandos aceitarem execução manual
+    direta (`python manage.py coletar --fonte=<id>`) e os testes de cada
+    comando usarem `call_command` diretamente, sem depender do cron.

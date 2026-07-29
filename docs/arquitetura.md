@@ -92,14 +92,21 @@ erDiagram
         string tipo "html|pdf|calendario"
         string url
         int intervalo_coleta "minutos"
+        boolean ativo "coletor só varre fontes ativas"
+        datetime ultima_coleta "nulo até a 1a coleta; comparado com intervalo_coleta"
     }
     CONTEUDO {
         int id PK
         string titulo
         text corpo
         text resumo
+        string url "link do conteúdo original na fonte"
         datetime data_publicacao
-        int categoria_id FK
+        int categoria_id FK "nulo enquanto não classificado (#17)"
+        string status "pendente|aprovado|descartado; só aprovado entra no feed"
+        boolean gerado_por_ia "resumo gerado por IA (transparência, #18)"
+        datetime prazo "data-limite extraída na sumarização, quando houver"
+        string publico_alvo "extraído na sumarização (#18)"
         int fonte_id FK
         string hash_dedup UK
         datetime criado_em
@@ -125,16 +132,29 @@ erDiagram
 **Notas de integridade:**
 - `Perfil.interesses` é N:N com `Interesse` (o aluno escolhe suas tags).
 - `Conteudo.categoria` e `Conteudo.fonte` usam `on_delete=PROTECT` (não se apaga
-  uma Categoria/Fonte com conteúdos vinculados).
+  uma Categoria/Fonte com conteúdos vinculados). `categoria` aceita `null`: o
+  coletor (#16) grava o conteúdo mesmo que o classificador (#17) não saiba
+  categorizá-lo; optou-se por `null=True` em vez de uma categoria
+  "não classificado" (decisão de modelagem — ver issue #52), porque um valor
+  nulo não aparece como filtro espúrio no admin nem como chip no frontend.
 - `Conteudo.hash_dedup` é único → deduplicação de conteúdo coletado.
+- **Fila de revisão manual** (`Conteudo.status`, US-05.2/#27): todo conteúdo
+  nasce `pendente`; só `aprovado` aparece no feed (`feed_queryset_for_perfil`
+  filtra por `status=aprovado`). Conteúdo pode ser marcado `descartado`. Os
+  registros anteriores a este campo (issue #52) foram migrados como `aprovado`
+  para não sumirem do feed.
 - `Entrega` é única por (`conteudo`, `usuario`, `canal`); `Feedback` é único por
   (`usuario`, `conteudo`).
 - **Personalização do feed** (`Conteudo.universal`, `Conteudo.cursos`,
   `Conteudo.interesses`, ver `newsletter/feed.py`): um conteúdo aparece no feed
   de um `Perfil` se for `universal=True`, **ou** se `Perfil.curso` estiver em
   `Conteudo.cursos`, **ou** se houver interseção entre `Perfil.interesses` e
-  `Conteudo.interesses`. Conteúdo não-universal sem curso/interesses associados
-  não aparece para ninguém (precisa de direcionamento explícito).
+  `Conteudo.interesses` — e, em qualquer caso, somente se `status=aprovado`.
+  Conteúdo não-universal sem curso/interesses associados não aparece para
+  ninguém (precisa de direcionamento explícito).
+- **Agendamento de coleta** (`Fonte.ativo`, `Fonte.ultima_coleta`): ver
+  ADR-008 em `docs/decisoes.md` para a decisão (proposta) de como e onde o
+  scheduler roda.
 
 > O diagrama pode ser regenerado a partir do código com
 > `django-extensions` (`python manage.py graph_models newsletter`).

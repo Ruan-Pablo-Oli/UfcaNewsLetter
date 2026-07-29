@@ -85,6 +85,12 @@ class TestFonte:
         assert fonte.tipo == Fonte.Tipo.HTML
         assert str(fonte) == "Portal UFCA"
 
+    def test_defaults_dos_campos_de_coleta(self):
+        fonte = _make_fonte()
+
+        assert fonte.ativo is True
+        assert fonte.ultima_coleta is None
+
 
 class TestConteudo:
     def test_create_with_relations(self):
@@ -122,6 +128,30 @@ class TestConteudo:
         assert conteudo.cursos == [Perfil.Curso.DIREITO]
         assert interesse in conteudo.interesses.all()
         assert conteudo in interesse.conteudos.all()
+
+    def test_defaults_dos_campos_de_coleta(self):
+        conteudo = _make_conteudo()
+
+        assert conteudo.url == ""
+        assert conteudo.status == Conteudo.Status.PENDENTE
+        assert conteudo.gerado_por_ia is False
+        assert conteudo.prazo is None
+        assert conteudo.publico_alvo == ""
+
+    def test_pode_ser_salvo_sem_categoria(self):
+        """Conteúdo ainda não classificado (#17) precisa poder ser inserido."""
+        conteudo = Conteudo.objects.create(
+            titulo="Edital ainda não classificado",
+            corpo="Corpo do conteúdo.",
+            resumo="Resumo.",
+            data_publicacao=timezone.now(),
+            categoria=None,
+            fonte=_make_fonte(),
+            hash_dedup="hash-sem-categoria",
+        )
+
+        conteudo.refresh_from_db()
+        assert conteudo.categoria is None
 
 
 class TestEntrega:
