@@ -56,12 +56,28 @@ O `.env` não é versionado (está no `.gitignore`); `make up` cria um automatic
 ### Como usar
 
 ```bash
-make build    # constrói a imagem
-make up       # sobe web + Postgres e aplica as migrações
-make logs     # acompanha os logs
-make shell    # bash interativo no container
-make down     # derruba os containers
+make build      # constrói a imagem
+make up         # sobe web + Postgres e aplica as migrações
+make seed-demo  # popula o banco com conteúdos fictícios (ver abaixo)
+make logs       # acompanha os logs
+make shell      # bash interativo no container
+make down       # derruba os containers
 ```
+
+#### Conteúdos de demonstração
+
+Enquanto o coletor automático não existe ([#16](https://github.com/Ruan-Pablo-Oli/UfcaNewsLetter/issues/16)),
+o feed de um clone novo nasce vazio. O comando `seed_conteudos` cria fontes,
+categorias e 30 conteúdos fictícios cobrindo os três caminhos da personalização
+(universal, por curso e por interesse):
+
+```bash
+make seed-demo
+# ou: docker compose exec web python manage.py seed_conteudos
+```
+
+É idempotente e **não** roda sozinho na subida dos contêineres — são dados
+falsos, então executá-lo é uma decisão explícita.
 
 Ou diretamente com Docker Compose:
 
@@ -87,11 +103,28 @@ docker compose up -d
     ufcanewsletter/       # projeto: settings, urls, wsgi, asgi
     newsletter/           # app de domínio: modelos das entidades
     accounts/             # app de autenticação: cadastro, login, perfil
+  frontend/               # SPA React (Vite) que consome a API
+```
+
+## Frontend
+
+SPA em React + Vite, em `frontend/`. O servidor de desenvolvimento faz proxy de
+`/accounts`, `/feed` e `/feedback` para o Django em `localhost:8000` — suba o
+backend antes (`make up`) e acesse a aplicação pela porta do Vite.
+
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173
+npm test         # vitest
+npm run lint
+npm run build
 ```
 
 ## Testes
 
-Os testes usam `pytest` + `pytest-django`.
+O backend usa `pytest` + `pytest-django`; o frontend usa `vitest` +
+Testing Library (`cd frontend && npm test`).
 
 ### Rodando localmente
 
@@ -116,4 +149,8 @@ ruff check .
 
 ### CI
 
-O workflow do GitHub Actions (`.github/workflows/tests.yml`) roda `pytest` e `ruff` em todo `push` e `pull_request`, subindo um serviço PostgreSQL para os testes que dependem de banco.
+O workflow do GitHub Actions (`.github/workflows/tests.yml`) roda, em todo `push` e `pull_request`:
+
+- `pytest` (subindo um serviço PostgreSQL para os testes que dependem de banco);
+- `ruff check .`;
+- no `frontend/`: `npm run lint`, `npm test` e `npm run build`.
