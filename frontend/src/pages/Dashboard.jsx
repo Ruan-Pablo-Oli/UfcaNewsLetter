@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api'
+import { ReasonTooltip } from '../components/ReasonTooltip'
 
 export function Dashboard() {
   const { user, logout } = useAuth()
@@ -15,8 +16,7 @@ export function Dashboard() {
   const [filterCat, setFilterCat] = useState('')
   const [modalItem, setModalItem] = useState(null)
 
-  async function loadFeed(p) {
-    setLoading(true)
+  const fetchFeed = useCallback(async (p) => {
     try {
       const data = await api.get(`/feed/?page=${p}&page_size=20`)
       setFeed(data.results)
@@ -27,9 +27,20 @@ export function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  useEffect(() => { loadFeed(1) }, [])
+  // A carga inicial não marca `loading`: o estado já nasce `true`. Marcar aqui
+  // seria um setState síncrono dentro do efeito (cascading render).
+  const loadFeed = useCallback((p) => {
+    setLoading(true)
+    return fetchFeed(p)
+  }, [fetchFeed])
+
+  // `set-state-in-effect` sinaliza qualquer setState alcançável pelo efeito,
+  // inclusive depois do `await`. Aqui a atualização só ocorre quando a resposta
+  // de `GET /feed/` chega — busca de dados na montagem, não render em cascata.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { fetchFeed(1) }, [fetchFeed])
 
   const categorias = useMemo(() => {
     const cats = new Set(feed.map((i) => i.categoria).filter(Boolean))
@@ -101,10 +112,14 @@ export function Dashboard() {
                 Bem-vindo(a), {user?.username}!
               </p>
             </div>
+            {/* Filtro local: age apenas sobre os itens já carregados nesta
+                página. A busca em todo o feed é a US-07.1 (#28). */}
             <input
               type="text"
               className="feed-search"
-              placeholder="Buscar notícias..."
+              placeholder="Filtrar nesta página..."
+              aria-label="Filtrar os conteúdos desta página"
+              title="Filtra apenas os conteúdos já carregados nesta página"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -164,10 +179,14 @@ export function Dashboard() {
 
           {!loading && filtered.length === 0 && (
             <div className="feed-empty">
-              {search || filterCat
-                ? 'Nenhum resultado encontrado.'
-                : 'Ainda não há conteúdos no seu feed.'}
-              {' '}<Link to="/perfil">Complete seu perfil</Link> para receber notícias personalizadas.
+              {search || filterCat ? (
+                'Nenhum resultado nesta página. O filtro considera apenas os conteúdos já carregados.'
+              ) : (
+                <>
+                  Ainda não há conteúdos no seu feed.{' '}
+                  <Link to="/perfil">Complete seu perfil</Link> para receber notícias personalizadas.
+                </>
+              )}
             </div>
           )}
 
@@ -188,19 +207,21 @@ export function Dashboard() {
                   </div>
                   <h3 className="feed-title">{item.titulo}</h3>
                   {item.resumo && <p className="feed-summary">{item.resumo}</p>}
-                  {item.motivo && (
-                    <p className="feed-reason">{item.motivo}</p>
-                  )}
+                  <ReasonTooltip motivo={item.motivo} />
                   <div className="feed-actions" onClick={(e) => e.stopPropagation()}>
                     <button
                       className={`feed-btn like ${item.feedback === 'positivo' ? 'active' : ''}`}
                       onClick={() => handleFeedback(item.id, 'positivo')}
                       title="Útil"
+                      aria-label={`Marcar "${item.titulo}" como útil`}
+                      aria-pressed={item.feedback === 'positivo'}
                     >👍</button>
                     <button
                       className={`feed-btn dislike ${item.feedback === 'negativo' ? 'active' : ''}`}
                       onClick={() => handleFeedback(item.id, 'negativo')}
                       title="Não útil"
+                      aria-label={`Marcar "${item.titulo}" como irrelevante`}
+                      aria-pressed={item.feedback === 'negativo'}
                     >👎</button>
                   </div>
                 </div>
@@ -232,7 +253,7 @@ export function Dashboard() {
               {modalItem.fonte} · {new Date(modalItem.data_publicacao).toLocaleDateString('pt-BR')}
             </p>
             {modalItem.resumo && <p className="modal-body">{modalItem.resumo}</p>}
-            {modalItem.motivo && <p className="feed-reason">{modalItem.motivo}</p>}
+            {modalItem.motivo && <p className="modal-reason">{modalItem.motivo}</p>}
           </div>
         </div>
       )}

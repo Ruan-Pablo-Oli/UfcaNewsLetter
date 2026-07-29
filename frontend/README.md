@@ -1,16 +1,42 @@
-# React + Vite
+# Frontend — UFCA Newsletter
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SPA em React 19 + Vite que consome a API do Django. Autenticação por sessão
+(cookie + CSRF), roteamento com `react-router-dom`.
 
-Currently, two official plugins are available:
+## Desenvolvimento
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+O backend precisa estar no ar (`make up` na raiz do repositório). O dev server
+faz proxy de `/accounts`, `/feed` e `/feedback` para `http://localhost:8000`,
+então **acesse a aplicação pela porta do Vite** — assim o cookie de sessão e o
+CSRF ficam na mesma origem.
 
-## React Compiler
+```bash
+npm install
+npm run dev      # http://localhost:5173
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Sem conteúdo no banco o feed aparece vazio; rode `make seed-demo` na raiz para
+popular dados fictícios.
 
-## Expanding the ESLint configuration
+## Testes
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+`vitest` + Testing Library, em ambiente jsdom.
+
+```bash
+npm test         # execução única
+npm run test:watch
+npm run lint
+```
+
+Os testes de `src/pages/Dashboard.test.jsx` mockam o módulo `../api` e o
+contexto de autenticação — não exigem backend no ar.
+
+## Estrutura
+
+```text
+  src/
+    api.js              # wrapper de fetch (JSON + header X-CSRFToken)
+    contexts/           # AuthContext: sessão do usuário
+    components/         # ProtectedRoute, ReasonTooltip
+    pages/              # Login, Signup, Dashboard (feed), Perfil
+```

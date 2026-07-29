@@ -10,4 +10,11 @@ export default defineConfig({
       '/feedback': 'http://localhost:8000',
     },
   },
+  test: {
+    environment: 'jsdom',
+    // `globals: true` habilita o cleanup automático do Testing Library entre os
+    // testes; ainda assim os testes importam explicitamente de `vitest`.
+    globals: true,
+    setupFiles: './src/setupTests.js',
+  },
 })
