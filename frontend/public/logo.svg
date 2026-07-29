@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60" fill="none">
+  <!-- Newspaper/book icon -->
+  <g transform="translate(4, 6)">
+    <rect x="2" y="2" width="32" height="40" rx="6" fill="#532B1D"/>
+    <rect x="7" y="8" width="22" height="3" rx="1.5" fill="#F5BE56"/>
+    <rect x="7" y="14" width="22" height="3" rx="1.5" fill="#50BDCA"/>
+    <rect x="7" y="20" width="22" height="3" rx="1.5" fill="#F5BE56"/>
+    <rect x="7" y="26" width="14" height="3" rx="1.5" fill="#75B747"/>
+    <rect x="7" y="32" width="8" height="3" rx="1.5" fill="#F5BE56"/>
+  </g>
+  <!-- Text -->
+  <text x="42" y="32" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#532B1D">UFCA</text>
+  <text x="106" y="32" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="300" fill="#C4892A">Newsletter</text>
+</svg>
