@@ -24,15 +24,23 @@ class CategoriaAdmin(admin.ModelAdmin):
 
 @admin.register(Fonte)
 class FonteAdmin(admin.ModelAdmin):
-    list_display = ("nome", "tipo", "url", "intervalo_coleta")
-    list_filter = ("tipo",)
+    list_display = ("nome", "tipo", "url", "intervalo_coleta", "ativo", "ultima_coleta")
+    list_filter = ("tipo", "ativo")
     search_fields = ("nome", "url")
 
 
 @admin.register(Conteudo)
 class ConteudoAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "categoria", "fonte", "data_publicacao", "universal")
-    list_filter = ("categoria", "fonte", "universal")
+    list_display = (
+        "titulo",
+        "categoria",
+        "status",
+        "fonte",
+        "data_publicacao",
+        "universal",
+        "gerado_por_ia",
+    )
+    list_filter = ("status", "categoria", "fonte", "universal", "gerado_por_ia")
     search_fields = ("titulo", "corpo", "hash_dedup")
     filter_horizontal = ("interesses",)
 

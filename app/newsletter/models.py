@@ -112,6 +112,16 @@ class Fonte(models.Model):
     intervalo_coleta = models.PositiveIntegerField(
         help_text="Intervalo entre coletas, em minutos.",
     )
+    ativo = models.BooleanField(
+        default=True,
+        help_text="Fontes inativas são ignoradas pelo coletor (US-03.1, issue #16).",
+    )
+    ultima_coleta = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Data/hora da última coleta bem-sucedida. O scheduler compara com "
+        "`intervalo_coleta` para decidir se já é hora de coletar de novo.",
+    )
 
     class Meta:
         ordering = ["nome"]
@@ -123,14 +133,51 @@ class Fonte(models.Model):
 class Conteudo(models.Model):
     """Conteúdo coletado de uma `Fonte` e classificado em uma `Categoria`."""
 
+    class Status(models.TextChoices):
+        """Fila de revisão manual (US-05.2, issue #27)."""
+
+        PENDENTE = "pendente", "Pendente"
+        APROVADO = "aprovado", "Aprovado"
+        DESCARTADO = "descartado", "Descartado"
+
     titulo = models.CharField(max_length=255)
     corpo = models.TextField()
     resumo = models.TextField(blank=True)
+    url = models.URLField(
+        blank=True,
+        default="",
+        help_text="Link do conteúdo original na fonte (ex.: página do edital).",
+    )
     data_publicacao = models.DateTimeField()
     categoria = models.ForeignKey(
         Categoria,
         on_delete=models.PROTECT,
         related_name="conteudos",
+        null=True,
+        blank=True,
+        help_text="Nulo enquanto o conteúdo não é classificado (US-03.2, issue #17).",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDENTE,
+        help_text="Só conteúdo aprovado aparece no feed dos estudantes.",
+    )
+    gerado_por_ia = models.BooleanField(
+        default=False,
+        help_text="Indica se o resumo foi gerado por IA (transparência exigida por #18).",
+    )
+    prazo = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Data-limite extraída do conteúdo (ex.: prazo de inscrição), quando houver.",
+    )
+    publico_alvo = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Público-alvo extraído do conteúdo na sumarização (ex.: 'discentes de "
+        "graduação').",
     )
     fonte = models.ForeignKey(
         Fonte,

@@ -418,6 +418,7 @@ class Command(BaseCommand):
                     "fonte": fontes[fonte],
                     "universal": universal,
                     "cursos": cursos,
+                    "status": Conteudo.Status.APROVADO,
                 },
             )
             if not criado:
