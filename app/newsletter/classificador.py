@@ -194,14 +194,18 @@ def classificar_conteudo(conteudo: Conteudo) -> bool:
 
 
 def classificar_pendentes(conteudos: Iterable[Conteudo]) -> dict[str, int]:
-    """Classifica uma coleção de conteúdos e resume o resultado.
+    """Classifica conteúdos sem categoria e resume o resultado.
 
-    Retorna `{"classificados": N, "fila_revisao": M}` — fila_revisao são os
-    conteúdos que continuam sem categoria após a tentativa.
+    Espera conteúdos **sem categoria** (pendentes de classificação). Itens que
+    já têm categoria são pulados sem contar. Retorna `{"classificados": N,
+    "fila_revisao": M}` — fila_revisao são os conteúdos que continuam sem
+    categoria após a tentativa (sem evidência para nenhuma regra).
     """
     classificados = 0
     fila = 0
     for conteudo in conteudos:
+        if conteudo.categoria_id is not None:
+            continue
         if classificar_conteudo(conteudo):
             classificados += 1
         else:

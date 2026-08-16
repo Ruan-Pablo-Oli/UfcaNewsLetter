@@ -1,9 +1,11 @@
 """Classifica conteúdos sem categoria (US-03.2, issue #17).
 
 Uso:
-    python manage.py classificar                 # só conteúdos sem categoria
-    python manage.py classificar --todos         # reavalia todos (sem sobrescrever)
+    python manage.py classificar                 # classifica conteúdos sem categoria
     python manage.py classificar --relatorio     # imprime métricas de cobertura
+    python manage.py classificar --todos         # aceito por simetria com o coletor;
+                                                 # o classificador sempre processa
+                                                 # conteúdos sem categoria
 
 O classificador é por regras (sem IA): decide a categoria a partir de
 palavras-chave no título/corpo e preenche `Conteudo.cursos` quando identifica

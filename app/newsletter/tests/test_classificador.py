@@ -158,6 +158,18 @@ def test_classificar_pendentes_resumo(db, fonte, categoria_edital):
     assert resumo == {"classificados": 1, "fila_revisao": 1}
 
 
+def test_classificar_pendentes_ignora_ja_categorizados(db, fonte, categoria_edital):
+    # Conteúdo já categorizado não é contado como fila de revisão nem reavaliado.
+    conteudo = _conteudo(fonte, "Edital já revisado", "Bolsas de iniciação científica.")
+    conteudo.categoria = categoria_edital
+    conteudo.save()
+    _conteudo(fonte, "Reunião ordinária", "Pauta enviada por e-mail.")
+
+    resumo = classificar_pendentes(Conteudo.objects.all())
+
+    assert resumo == {"classificados": 0, "fila_revisao": 1}
+
+
 # --- comando ----------------------------------------------------------------
 
 
