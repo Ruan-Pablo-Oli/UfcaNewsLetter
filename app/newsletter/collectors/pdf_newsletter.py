@@ -8,7 +8,6 @@ from urllib.parse import urlsplit
 import fitz
 import requests
 
-
 DEFAULT_ALLOWED_HOSTS = {
     "documents.ufca.edu.br",
     "sites.ufca.edu.br",
@@ -90,6 +89,8 @@ class PDFProcessor:
         self._validate_url(url)
 
         cached = self._cache.get(url)
+        if cached is not None:
+            return cached.result
 
         pdf_bytes, etag, last_modified = self._download(
             url,

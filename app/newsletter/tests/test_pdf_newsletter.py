@@ -2,6 +2,7 @@ import hashlib
 
 import fitz
 import pytest
+import requests
 
 from newsletter.collectors.pdf_newsletter import (
     PDFDownloadError,
@@ -9,7 +10,6 @@ from newsletter.collectors.pdf_newsletter import (
     PDFProcessor,
     PDFValidationError,
 )
-
 
 PDF_URL = (
     "https://documents.ufca.edu.br/edital.pdf"
@@ -32,6 +32,12 @@ class FakeResponse:
         self.content = content
         self.status_code = status_code
         self.headers = headers or {}
+
+    def raise_for_status(self):
+        if 400 <= self.status_code < 600:
+            raise requests.HTTPError(
+                f"HTTP {self.status_code} error"
+            )
 
     def iter_content(self, chunk_size=65536):
         yield self.content
@@ -244,7 +250,13 @@ def test_cache_prevents_second_download():
                 headers={
                     "Content-Type": "application/pdf"
                 },
-            )
+            ),
+            FakeResponse(
+                content=pdf,
+                headers={
+                    "Content-Type": "application/pdf"
+                },
+            ),
         ]
     )
 
@@ -353,7 +365,6 @@ def test_download_error():
     class FailingSession:
 
         def get(self, url, **kwargs):
-            import requests
 
             raise requests.Timeout(
                 "tempo esgotado"
