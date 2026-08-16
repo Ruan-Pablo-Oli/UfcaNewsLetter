@@ -7,4 +7,6 @@ urlpatterns = [
     path("feed/", views.feed, name="feed"),
     path("feedback/", views.feedback, name="feedback"),
     path("feedback/historico/", views.feedback_historico, name="feedback_historico"),
+    path("busca/", views.busca, name="busca"),
+    path("historico/", views.historico, name="historico"),
 ]

@@ -7,8 +7,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 
+from .busca import buscar_conteudos
 from .feed import feed_queryset_for_perfil, motivo_recomendacao
-from .models import Conteudo, Feedback, Perfil
+from .models import Conteudo, Entrega, Feedback, Perfil
 
 FEED_PAGE_SIZE_PADRAO = 20
 FEED_PAGE_SIZE_MAXIMO = 50
@@ -125,6 +126,113 @@ def feedback_historico(request):
             "criado_em": registro.criado_em.isoformat(),
         }
         for registro in pagina.object_list
+    ]
+
+    return JsonResponse(
+        {
+            "count": pagina.paginator.count,
+            "page": pagina.number,
+            "page_size": page_size,
+            "total_pages": pagina.paginator.num_pages,
+            "results": resultados,
+        }
+    )
+
+
+@login_required
+def busca(request):
+    """`GET /busca/?q=...&categoria=...&curso=...&data_inicio=...&data_fim=...`
+
+    Busca conteúdos visíveis ao perfil do estudante (mesmo queryset do feed),
+    ordenados por relevância (título > corpo) e depois data. Apenas conteúdos
+    aprovados e direcionados ao perfil aparecem (US-07.1, issue #28).
+    """
+    perfil, _ = Perfil.objects.get_or_create(
+        user=request.user, defaults={"curso": "", "periodo": 1}
+    )
+
+    page_number = _parse_int(request.GET.get("page"), 1)
+    page_size = _parse_int(request.GET.get("page_size"), FEED_PAGE_SIZE_PADRAO)
+    page_size = max(1, min(page_size, FEED_PAGE_SIZE_MAXIMO))
+
+    conteudos = buscar_conteudos(
+        perfil,
+        q=request.GET.get("q", ""),
+        categoria=request.GET.get("categoria", ""),
+        curso=request.GET.get("curso", ""),
+        data_inicio=request.GET.get("data_inicio", ""),
+        data_fim=request.GET.get("data_fim", ""),
+    )
+    pagina = Paginator(conteudos, page_size).get_page(page_number)
+
+    resultados = [
+        {
+            "id": conteudo.id,
+            "titulo": conteudo.titulo,
+            "resumo": conteudo.resumo,
+            "categoria": conteudo.categoria.nome if conteudo.categoria else None,
+            "fonte": conteudo.fonte.nome,
+            "data_publicacao": conteudo.data_publicacao.isoformat(),
+            "url": conteudo.url,
+        }
+        for conteudo in pagina.object_list
+    ]
+
+    return JsonResponse(
+        {
+            "count": pagina.paginator.count,
+            "page": pagina.number,
+            "page_size": page_size,
+            "total_pages": pagina.paginator.num_pages,
+            "results": resultados,
+        }
+    )
+
+
+@login_required
+def historico(request):
+    """`GET /historico/?data_inicio=...&data_fim=...&categoria=...`
+
+    Histórico de conteúdos já entregues ao estudante, em ordem cronológica
+    decrescente, paginado. Filtros opcionais por período (data de envio) e
+    categoria (US-07.2, issue #29).
+    """
+    entregas = Entrega.objects.filter(usuario=request.user).select_related(
+        "conteudo", "conteudo__categoria", "conteudo__fonte"
+    )
+
+    data_inicio = request.GET.get("data_inicio")
+    data_fim = request.GET.get("data_fim")
+    if data_inicio:
+        entregas = entregas.filter(data_envio__date__gte=data_inicio)
+    if data_fim:
+        entregas = entregas.filter(data_envio__date__lte=data_fim)
+
+    categoria = request.GET.get("categoria")
+    if categoria:
+        entregas = entregas.filter(conteudo__categoria__nome=categoria)
+
+    page_number = _parse_int(request.GET.get("page"), 1)
+    page_size = _parse_int(request.GET.get("page_size"), FEED_PAGE_SIZE_PADRAO)
+    page_size = max(1, min(page_size, FEED_PAGE_SIZE_MAXIMO))
+
+    pagina = Paginator(entregas, page_size).get_page(page_number)
+
+    resultados = [
+        {
+            "id": entrega.id,
+            "conteudo_id": entrega.conteudo_id,
+            "titulo": entrega.conteudo.titulo,
+            "resumo": entrega.conteudo.resumo,
+            "categoria": (
+                entrega.conteudo.categoria.nome if entrega.conteudo.categoria else None
+            ),
+            "fonte": entrega.conteudo.fonte.nome,
+            "canal": entrega.canal,
+            "data_envio": entrega.data_envio.isoformat(),
+            "url": entrega.conteudo.url,
+        }
+        for entrega in pagina.object_list
     ]
 
     return JsonResponse(
