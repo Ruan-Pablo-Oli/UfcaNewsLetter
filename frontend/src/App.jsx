@@ -5,6 +5,8 @@ import { Login } from './pages/Login'
 import { Signup } from './pages/Signup'
 import { Dashboard } from './pages/Dashboard'
 import { Perfil } from './pages/Perfil'
+import { Busca } from './pages/Busca'
+import { Historico } from './pages/Historico'
 import './App.css'
 
 function App() {
@@ -19,6 +21,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Perfil />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/busca"
+            element={
+              <ProtectedRoute>
+                <Busca />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/historico"
+            element={
+              <ProtectedRoute>
+                <Historico />
               </ProtectedRoute>
             }
           />

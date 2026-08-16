@@ -97,6 +97,14 @@ export function Dashboard() {
               <span className="nav-icon">📰</span>
               Feed
             </Link>
+            <Link to="/busca" className="dashboard-nav-item">
+              <span className="nav-icon">🔎</span>
+              Buscar
+            </Link>
+            <Link to="/historico" className="dashboard-nav-item">
+              <span className="nav-icon">🕘</span>
+              Histórico
+            </Link>
             <Link to="/perfil" className="dashboard-nav-item">
               <span className="nav-icon">👤</span>
               Perfil Acadêmico
