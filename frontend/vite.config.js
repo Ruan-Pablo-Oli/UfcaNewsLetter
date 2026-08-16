@@ -8,6 +8,8 @@ export default defineConfig({
       '/accounts': 'http://localhost:8000',
       '/feed': 'http://localhost:8000',
       '/feedback': 'http://localhost:8000',
+      '/busca': 'http://localhost:8000',
+      '/historico': 'http://localhost:8000',
     },
   },
   test: {
