@@ -19,7 +19,11 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.timezone import is_naive, make_aware
 
-from .collectors import CollectionError, NewsInformeCollector
+from .collectors import (
+    CollectionError,
+    ConcursosSelecoesCollector,
+    NewsInformeCollector,
+)
 from .models import Conteudo, Fonte
 
 # Mapeia ``Fonte.tipo`` para a classe de adaptador responsável por extrair
@@ -27,6 +31,7 @@ from .models import Conteudo, Fonte
 # Calendário, issues #54 e #55) são pulados na varredura, sem quebrar as demais.
 REGISTRO_COLETORES = {
     Fonte.Tipo.HTML: NewsInformeCollector,
+    Fonte.Tipo.CONCURSO: ConcursosSelecoesCollector,
 }
 
 

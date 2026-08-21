@@ -105,6 +105,7 @@ class Fonte(models.Model):
         HTML = "html", "HTML"
         PDF = "pdf", "PDF"
         CALENDARIO = "calendario", "Calendário"
+        CONCURSO = "concurso", "Concursos e Seleções"
 
     nome = models.CharField(max_length=150)
     tipo = models.CharField(max_length=20, choices=Tipo.choices)
