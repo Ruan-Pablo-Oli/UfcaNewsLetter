@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../api'
+import { isPushSupported, subscribePush, unsubscribePush } from '../push'
+
+const PUSH_PERMISSAO_NEGADA_MSG =
+  'As notificações estão bloqueadas nas configurações do navegador. Reative-as para ativar o push.'
 
 export function Perfil() {
   const { user, logout } = useAuth()
@@ -15,6 +19,13 @@ export function Perfil() {
   const [periodo, setPeriodo] = useState(1)
   const [interesses, setInteresses] = useState([])
   const [frequenciaEmail, setFrequenciaEmail] = useState('diaria')
+  const [pushAtivo, setPushAtivo] = useState(false)
+  const [pushSupported] = useState(isPushSupported())
+  const [pushPermission, setPushPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  )
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushError, setPushError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -33,6 +44,7 @@ export function Perfil() {
         setPeriodo(perfil.periodo)
         setInteresses(perfil.interesses || [])
         setFrequenciaEmail(perfil.frequencia_email || 'diaria')
+        setPushAtivo(perfil.push_ativo || false)
         setCursos(c.cursos)
         setInteressesList(i.interesses)
         setFrequencias(f.frequencias)
@@ -49,6 +61,46 @@ export function Perfil() {
     setInteresses((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     )
+  }
+
+  async function handleTogglePush(checked) {
+    if (pushBusy) return
+    setPushError('')
+    setPushBusy(true)
+    try {
+      if (checked) {
+        const { granted } = await subscribePush()
+        setPushPermission(Notification.permission)
+        if (!granted) {
+          if (Notification.permission === 'denied') {
+            setPushError(PUSH_PERMISSAO_NEGADA_MSG)
+          }
+          return
+        }
+        await api.patch('/accounts/api/perfil/', {
+          curso,
+          periodo,
+          interesses,
+          frequencia_email: frequenciaEmail,
+          push_ativo: true,
+        })
+        setPushAtivo(true)
+      } else {
+        await unsubscribePush()
+        await api.patch('/accounts/api/perfil/', {
+          curso,
+          periodo,
+          interesses,
+          frequencia_email: frequenciaEmail,
+          push_ativo: false,
+        })
+        setPushAtivo(false)
+      }
+    } catch (err) {
+      setPushError(err.message)
+    } finally {
+      setPushBusy(false)
+    }
   }
 
   async function handleSubmit(e) {
@@ -211,19 +263,44 @@ export function Perfil() {
             )}
 
             {tab === 'entrega' && (
-              <div className="input-group">
-                <label htmlFor="frequencia_email">Frequência de e-mail</label>
-                <select
-                  id="frequencia_email"
-                  value={frequenciaEmail}
-                  onChange={(e) => setFrequenciaEmail(e.target.value)}
-                  className="input-select"
-                >
-                  {frequencias.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-              </div>
+              <>
+                <div className="input-group">
+                  <label htmlFor="frequencia_email">Frequência de e-mail</label>
+                  <select
+                    id="frequencia_email"
+                    value={frequenciaEmail}
+                    onChange={(e) => setFrequenciaEmail(e.target.value)}
+                    className="input-select"
+                  >
+                    {frequencias.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {pushSupported ? (
+                  <div className="input-group">
+                    <label className="push-toggle-label">
+                      <input
+                        type="checkbox"
+                        role="switch"
+                        checked={pushAtivo}
+                        disabled={pushBusy || pushPermission === 'denied'}
+                        onChange={(e) => handleTogglePush(e.target.checked)}
+                      />
+                      Notificações push
+                    </label>
+                    {pushPermission === 'denied' && (
+                      <p className="push-hint">{PUSH_PERMISSAO_NEGADA_MSG}</p>
+                    )}
+                    {pushError && <p className="error-message">{pushError}</p>}
+                  </div>
+                ) : (
+                  <p className="push-hint">
+                    Notificações push não são suportadas neste navegador.
+                  </p>
+                )}
+              </>
             )}
 
             <button type="submit" className="login-btn" disabled={saving} style={{ maxWidth: 200 }}>

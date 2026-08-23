@@ -1,6 +1,7 @@
 """Views de cadastro, login/logout, perfil acadêmico e área protegida de exemplo."""
 import json
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -150,6 +151,15 @@ def api_frequencias_email(request):
             {"value": f.value, "label": f.label} for f in Perfil.FrequenciaEmail
         ]
     })
+
+
+@require_http_methods(["GET"])
+def api_vapid_public_key(request):
+    """Chave pública VAPID, necessária ao navegador como `applicationServerKey`
+    de `PushManager.subscribe()` (issue #22). Pública por definição: a chave
+    privada nunca sai do servidor (fica só em `WEBPUSH_VAPID_PRIVATE_KEY`).
+    """
+    return JsonResponse({"public_key": settings.WEBPUSH_VAPID_PUBLIC_KEY})
 
 
 @login_required
