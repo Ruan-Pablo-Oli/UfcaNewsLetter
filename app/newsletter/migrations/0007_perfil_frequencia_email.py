@@ -5,7 +5,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("newsletter", "0005_tipo_fonte_concurso"),
+        ("newsletter", "0006_conteudo_anexos"),
     ]
 
     operations = [
