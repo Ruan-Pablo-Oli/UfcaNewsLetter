@@ -7,6 +7,10 @@ vi.mock('./api', () => ({
   api: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
 }))
 
+// base64url válido (65 bytes), como o navegador exige: `atob` rejeita
+// qualquer coisa fora do alfabeto base64.
+const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U'
+
 describe('isPushSupported', () => {
   afterEach(() => {
     delete window.PushManager
@@ -59,7 +63,7 @@ describe('subscribePush', () => {
 
   it('assina o push e envia a subscription ao backend quando a permissão é concedida', async () => {
     window.Notification.requestPermission.mockResolvedValue('granted')
-    api.get.mockResolvedValue({ public_key: 'chave-publica' })
+    api.get.mockResolvedValue({ public_key: VAPID_PUBLIC_KEY })
     api.post.mockResolvedValue({})
 
     const result = await subscribePush()

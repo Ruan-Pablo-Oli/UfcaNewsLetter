@@ -17,7 +17,9 @@ vi.mock('../contexts/AuthContext', () => ({
   }),
 }))
 
-const VAPID_PUBLIC_KEY = 'chave-publica-vapid'
+// base64url válido (65 bytes): `atob`, em urlBase64ToUint8Array,
+// rejeita qualquer coisa fora do alfabeto base64.
+const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U'
 
 function mockPerfilApi({ pushAtivo = false } = {}) {
   api.get.mockImplementation((url) => {
@@ -55,7 +57,9 @@ function renderPerfil() {
 }
 
 async function abrirAbaEntrega() {
-  await userEvent.click(screen.getByRole('button', { name: 'Frequência de entrega' }))
+  // findBy*, não getBy*: a tela fica em loading até o load() assíncrono
+  // resolver, e só então as abas são renderizadas.
+  await userEvent.click(await screen.findByRole('button', { name: 'Frequência de entrega' }))
 }
 
 describe('Perfil — notificações push', () => {
