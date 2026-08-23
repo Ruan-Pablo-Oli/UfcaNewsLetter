@@ -21,10 +21,11 @@ class PerfilForm(forms.ModelForm):
         required=False,
         label="Frequência de e-mail",
     )
+    push_ativo = forms.BooleanField(required=False, label="Notificações push")
 
     class Meta:
         model = Perfil
-        fields = ["curso", "periodo", "interesses", "frequencia_email"]
+        fields = ["curso", "periodo", "interesses", "frequencia_email", "push_ativo"]
 
     def clean_interesses(self):
         interesses = self.cleaned_data["interesses"]
@@ -38,3 +39,12 @@ class PerfilForm(forms.ModelForm):
         # Campo opcional na edição: se o cliente não enviar (ex.: telas que só
         # mexem em curso/interesses), preserva a frequência já configurada.
         return self.cleaned_data.get("frequencia_email") or self.instance.frequencia_email
+
+    def clean_push_ativo(self):
+        # BooleanField/checkbox não distingue "desmarcado" de "ausente" nos
+        # dados enviados; usamos a presença da chave para decidir: se o
+        # cliente não enviou push_ativo (ex.: PATCH parcial de curso/período),
+        # preserva o valor já configurado.
+        if "push_ativo" not in self.data:
+            return self.instance.push_ativo
+        return self.cleaned_data.get("push_ativo", False)

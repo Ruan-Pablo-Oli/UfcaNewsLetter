@@ -4,7 +4,16 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from newsletter.models import Categoria, Conteudo, Entrega, Feedback, Fonte, Interesse, Perfil
+from newsletter.models import (
+    Categoria,
+    Conteudo,
+    Entrega,
+    Feedback,
+    Fonte,
+    Interesse,
+    Perfil,
+    PushSubscription,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -58,6 +67,11 @@ class TestPerfil:
         with pytest.raises(IntegrityError):
             with transaction.atomic():
                 Perfil.objects.create(user=user, curso="Direito", periodo=2)
+
+    def test_push_ativo_default_false(self):
+        perfil = Perfil.objects.create(user=_make_user(), curso="Direito", periodo=1)
+
+        assert perfil.push_ativo is False
 
 
 class TestInteresse:
@@ -171,6 +185,48 @@ class TestEntrega:
         with pytest.raises(IntegrityError):
             with transaction.atomic():
                 Entrega.objects.create(conteudo=conteudo, usuario=user, canal=Entrega.Canal.EMAIL)
+
+
+class TestPushSubscription:
+    def test_create(self):
+        user = _make_user()
+        subscription = PushSubscription.objects.create(
+            usuario=user,
+            endpoint="https://push.example.com/abc",
+            p256dh="chave-p256dh",
+            auth="chave-auth",
+        )
+
+        assert subscription in user.push_subscriptions.all()
+
+    def test_endpoint_is_unique(self):
+        user = _make_user()
+        PushSubscription.objects.create(
+            usuario=user,
+            endpoint="https://push.example.com/abc",
+            p256dh="p1",
+            auth="a1",
+        )
+
+        with pytest.raises(IntegrityError):
+            with transaction.atomic():
+                PushSubscription.objects.create(
+                    usuario=_make_user("outro"),
+                    endpoint="https://push.example.com/abc",
+                    p256dh="p2",
+                    auth="a2",
+                )
+
+    def test_usuario_pode_ter_varias_subscriptions(self):
+        user = _make_user()
+        PushSubscription.objects.create(
+            usuario=user, endpoint="https://push.example.com/1", p256dh="p1", auth="a1"
+        )
+        PushSubscription.objects.create(
+            usuario=user, endpoint="https://push.example.com/2", p256dh="p2", auth="a2"
+        )
+
+        assert user.push_subscriptions.count() == 2
 
 
 class TestFeedback:
