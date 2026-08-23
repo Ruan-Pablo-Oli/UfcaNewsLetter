@@ -1,0 +1,32 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Universidade Federal do Cariri - ECPv4.9.5//NONSGML v1.0//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Universidade Federal do Cariri
+X-ORIGINAL-URL:https://www.ufca.edu.br
+X-WR-CALDESC:Eventos para Universidade Federal do Cariri
+BEGIN:VTIMEZONE
+TZID:"America/Fortaleza"
+BEGIN:STANDARD
+TZOFFSETFROM:-0300
+TZOFFSETTO:-0300
+TZNAME:-03
+DTSTART:20260101T000000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID="America/Fortaleza":20260812T143000
+DTEND;TZID="America/Fortaleza":20260812T170000
+DTSTAMP:20260816T044455
+CREATED:20260728T183233Z
+LAST-MODIFIED:20260806T134632Z
+UID:56485-1786545000-1786554000@www.ufca.edu.br
+SUMMARY:10º Fórum de Qualidade de Vida do Estudante
+DESCRIPTION:A Pró-Reitoria de Assuntos Estudantis (Prae/UFCA)\, por meio da Divisão de Atenção à Qualidade de Vida do Estudante\, convida a comunidade acadêmica da UFCA para participação no Décimo Fórum de Qualidade de Vida do Estudante. O evento será realizado nos dias 5\, 12\, 19 e 26 de agosto de 2026\, nos campi Brejo Santo\, Crato\, Barbalha e Juazeiro do Norte\, respectivamente.  \nNesta edição\, o evento abordará o tema “Primeiros Socorros no Ambiente Universitário”\, com foco na disseminação de técnicas essenciais de suporte básico à vida. O objetivo é capacitar a comunidade acadêmica para agir com segurança diante de situações de urgência e emergência. \nAs inscrições podem ser feitas por meio da Plataforma Even3. Será possível efetivar a inscrição até o dia de cada palestra. \nPROGRAMAÇÃO \nQuarta-feira\, 5 de agosto – Campus Brejo Santo \nPalestra: Primeiros Socorros no Ambiente Acadêmico: Prevenção e Ação\nHorário: às 14h30\nLocal: Sala 10 – IFE/UFCA\nConvidados: Núcleo de Educação em Urgências do Serviço de Atendimento Móvel de Urgência (Samu) \nQuarta-feira\, 12 de agosto – Campus Crato \nPalestra: Primeiros Socorros no Ambiente Acadêmico: Prevenção e Ação \nHorário: às 14h\nLocal: Sala 301 – Ccab/UFCA\nConvidados: BM Carlos Eduardo Varela (2ª Cia / 5º BBM – Corpo de Bombeiros Militar do Ceará) \nQuarta-feira\, 19 de agosto – Campus Barbalha \nPalestra: Saber Agir para salvar vidas: Educação em Primeiros Socorros\nHorário: às 18h\nLocal: Sala de videoconferência – Faculdade de Medicina (Famed/UFCA)\nConvidada: Larissa Fiúza e Olívia Emídio – extensionistas da Famed/UFCA \nQuarta-feira\, 26 de agosto – Campus Juazeiro do Norte \nPalestra: Primeiros Socorros no Ambiente Acadêmico: Prevenção e Ação \nLocal: Auditório Bárbara de Alencar (bloco E\, piso inferior\, sala E21)\nHorário: às 14h\nConvidado: BM Carlos Eduardo Varela (2ª Cia / 5º BBM – Corpo de Bombeiros Militar do Ceará) \n  \n  \n  \n  \n  \n  \n
+URL:https://www.ufca.edu.br/evento/10o-forum-de-qualidade-de-vida-do-estudante/
+LOCATION:Campus Crato\, R. Ícaro de Sousa Moreira\, 126. Bairro Muriti\, Crato\, Ceará\, Brasil
+CATEGORIES:Eventos
+ATTACH;FMTTYPE=image/png:https://www.ufca.edu.br/portal/wp-content/uploads/2026/07/banner-site.png
+END:VEVENT
+END:VCALENDAR

@@ -204,6 +204,14 @@ class Conteudo(models.Model):
         unique=True,
         help_text="Hash usado para deduplicação de conteúdo.",
     )
+    anexos = models.JSONField(
+        blank=True,
+        default=list,
+        help_text=(
+            "Anexos PDF processados (issue #54). Cada item: url, file_hash, text, "
+            "metadata, edital_number, edital_year, is_rectification."
+        ),
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     universal = models.BooleanField(
         default=False,

@@ -20,10 +20,12 @@ from django.utils import timezone
 from django.utils.timezone import is_naive, make_aware
 
 from .collectors import (
+    CalendarioCollector,
     CollectionError,
     ConcursosSelecoesCollector,
     NewsInformeCollector,
 )
+from .collectors.pdf_newsletter import PDFProcessor
 from .models import Conteudo, Fonte
 
 # Mapeia ``Fonte.tipo`` para a classe de adaptador responsável por extrair
@@ -32,6 +34,7 @@ from .models import Conteudo, Fonte
 REGISTRO_COLETORES = {
     Fonte.Tipo.HTML: NewsInformeCollector,
     Fonte.Tipo.CONCURSO: ConcursosSelecoesCollector,
+    Fonte.Tipo.CALENDARIO: CalendarioCollector,
 }
 
 
@@ -63,8 +66,43 @@ def _data_publicacao(record) -> object:
     return valor
 
 
+def _processar_anexos(
+    record,
+    processor: PDFProcessor | None,
+) -> tuple[list[dict], list[CollectionError]]:
+    """Processa os ``attachment_urls`` do registro (issue #54).
+
+    Retorna ``(anexos, erros)``. Um anexo que falha gera um ``CollectionError``
+    e é simplesmente omitido da lista — não interrompe o item nem os demais.
+    Sem ``processor``, retorna lista vazia (comportamento anterior).
+    """
+    anexos: list[dict] = []
+    erros: list[CollectionError] = []
+    if not getattr(record, "attachment_urls", None):
+        return anexos, erros
+
+    for url in record.attachment_urls:
+        try:
+            pdf = processor.process(url, source_url=record.source_url)
+        except Exception as exc:
+            erros.append(CollectionError(url=url, reason=f"pdf: {exc}"))
+            continue
+        anexos.append(
+            {
+                "url": pdf.url,
+                "file_hash": pdf.file_hash,
+                "text": pdf.text,
+                "metadata": dict(pdf.metadata),
+                "edital_number": pdf.edital_number,
+                "edital_year": pdf.edital_year,
+                "is_rectification": pdf.is_rectification,
+            }
+        )
+    return anexos, erros
+
+
 @transaction.atomic
-def _persistir(record, fonte: Fonte) -> bool:
+def _persistir(record, fonte: Fonte, *, anexos: list[dict] | None = None) -> bool:
     """Grava um registro extraído como ``Conteudo``; retorna True se foi criado.
 
     A deduplicação usa ``Conteudo.hash_dedup`` (único): se já existe um conteúdo
@@ -79,16 +117,25 @@ def _persistir(record, fonte: Fonte) -> bool:
             "data_publicacao": _data_publicacao(record),
             "fonte": fonte,
             "status": Conteudo.Status.PENDENTE,
+            "anexos": anexos or [],
         },
     )
     return criado
 
 
-def coletar_fonte(fonte: Fonte, *, fetch_html=None, max_pages: int = 100) -> ResultadoColeta:
+def coletar_fonte(
+    fonte: Fonte,
+    *,
+    fetch_html=None,
+    max_pages: int = 100,
+    pdf_processor: PDFProcessor | None = None,
+) -> ResultadoColeta:
     """Coleta uma ``Fonte`` específica e persiste os registros extraídos.
 
     ``fetch_html`` permite injetar a busca de HTML (usado nos testes); quando
-    ``None``, o adaptador faz a requisição HTTP de verdade.
+    ``None``, o adaptador faz a requisição HTTP de verdade. ``pdf_processor``
+    processa os PDFs referenciados por cada registro (issue #54); quando
+    ``None``, um ``PDFProcessor`` padrão é criado.
     """
     coletor_cls = REGISTRO_COLETORES.get(fonte.tipo)
     if coletor_cls is None:
@@ -103,15 +150,19 @@ def coletar_fonte(fonte: Fonte, *, fetch_html=None, max_pages: int = 100) -> Res
         fonte.url, fetch_html=fetch_html, max_pages=max_pages
     )
 
+    processor = pdf_processor if pdf_processor is not None else PDFProcessor()
     criados = 0
+    erros = list(coletor.errors)
     for registro in registros:
-        if _persistir(registro, fonte):
+        anexos, erros_anexo = _processar_anexos(registro, processor)
+        erros.extend(erros_anexo)
+        if _persistir(registro, fonte, anexos=anexos):
             criados += 1
 
     return ResultadoColeta(
         fonte=fonte,
         criados=criados,
-        erros=tuple(coletor.errors),
+        erros=tuple(erros),
     )
 
 
