@@ -15,6 +15,9 @@ urlpatterns = [
     path("api/interesses/", views.api_interesses, name="api_interesses"),
     path("api/frequencias-email/", views.api_frequencias_email, name="api_frequencias_email"),
     path(
+        "api/vapid-public-key/", views.api_vapid_public_key, name="api_vapid_public_key"
+    ),
+    path(
         "api/push-subscription/", views.api_push_subscription, name="api_push_subscription"
     ),
     path("signup/", views.signup, name="signup"),

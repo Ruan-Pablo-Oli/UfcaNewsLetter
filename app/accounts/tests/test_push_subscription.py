@@ -98,6 +98,23 @@ class TestApiPerfilPushAtivo:
         assert user.perfil.push_ativo is False
 
 
+class TestApiVapidPublicKey:
+    def test_retorna_chave_publica_do_settings(self, client, settings):
+        settings.WEBPUSH_VAPID_PUBLIC_KEY = "chave-publica-de-teste"
+
+        response = client.get(reverse("api_vapid_public_key"))
+
+        assert response.status_code == 200
+        assert response.json() == {"public_key": "chave-publica-de-teste"}
+
+    def test_nao_exige_login(self, client, settings):
+        settings.WEBPUSH_VAPID_PUBLIC_KEY = "chave-publica-de-teste"
+
+        response = client.get(reverse("api_vapid_public_key"))
+
+        assert response.status_code == 200
+
+
 class TestApiPushSubscription:
     def _payload(self, endpoint="https://push.example.com/abc"):
         return {"endpoint": endpoint, "keys": {"p256dh": "chave-p256dh", "auth": "chave-auth"}}
