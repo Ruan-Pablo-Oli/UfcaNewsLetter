@@ -179,3 +179,53 @@ def test_comando_coletar_filtra_por_fonte(db, fonte_html):
     assert Conteudo.objects.count() == 1
     outra.refresh_from_db()
     assert outra.ultima_coleta is None
+
+
+@pytest.mark.django_db
+def test_coletar_fonte_calendario_persiste_evento(db):
+    """Issue #55: Fonte tipo CALENDARIO tem coletor e persiste eventos."""
+    from newsletter.collectors import CalendarioCollector
+
+    fonte_cal = Fonte.objects.create(
+        nome="Calendário",
+        tipo=Fonte.Tipo.CALENDARIO,
+        url="https://www.ufca.edu.br/calendario/",
+        intervalo_coleta=60,
+    )
+
+    class FakeCalendario:
+        errors: list[CollectionError] = []
+
+        def collect(self, listing_url, *, fetch_html=None, max_pages=12, known_canonical_urls=None):
+            return [
+                FakeRecord(
+                    source_url="https://www.ufca.edu.br/calendario/evento/",
+                    canonical_url="https://www.ufca.edu.br/calendario/evento/",
+                    title="Evento de teste",
+                    body="Corpo do evento.",
+                    published_at=datetime(2026, 8, 1),
+                    updated_at=None,
+                    category=None,
+                    attachment_urls=(),
+                    content_hash="hash-evento-calendario",
+                )
+            ]
+
+    with patch.dict(
+        "newsletter.coleta.REGISTRO_COLETORES",
+        {Fonte.Tipo.CALENDARIO: CalendarioCollector.__mro__ and FakeCalendario},
+    ):
+        resultado = coletar_fonte(fonte_cal)
+
+    assert resultado.ok
+    assert resultado.criados == 1
+    conteudo = Conteudo.objects.get(hash_dedup="hash-evento-calendario")
+    assert conteudo.status == Conteudo.Status.PENDENTE
+
+
+@pytest.mark.django_db
+def test_registro_coletores_cobre_calendario():
+    """O registro oficial inclui o tipo CALENDARIO (issue #55)."""
+    from newsletter.coleta import REGISTRO_COLETORES
+
+    assert Fonte.Tipo.CALENDARIO in REGISTRO_COLETORES
