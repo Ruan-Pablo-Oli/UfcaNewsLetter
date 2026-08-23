@@ -49,8 +49,15 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
           #
-          # Permite ao agente rodar os comandos de build/test do projeto (Django + Postgres)
-          # para gerar migrações reais e se autovalidar (pytest/ruff) antes de abrir o PR.
+          # Permite ao agente rodar os comandos de build/test do projeto — Django no
+          # backend, Vite/vitest no frontend — para gerar migrações reais e se
+          # autovalidar (pytest/ruff/vitest) antes de abrir o PR.
           # Lista aditiva e restrita a ferramentas de dependência/teste — sem Bash geral.
-          claude_args: '--allowedTools "Bash(pip install:*),Bash(pip:*),Bash(python:*),Bash(python3:*),Bash(pytest:*),Bash(ruff:*)"'
+          #
+          # `npm` entrou depois da #22 (parte 2): sem ele o agente não consegue rodar
+          # `npm ci` nem `npm test`, e entregou 5 testes de frontend quebrados sem
+          # ter como perceber. O `pytest` continua não rodando neste sandbox — não há
+          # serviço Postgres aqui —, então a validação local antes do merge segue
+          # necessária para o backend.
+          claude_args: '--allowedTools "Bash(pip install:*),Bash(pip:*),Bash(python:*),Bash(python3:*),Bash(pytest:*),Bash(ruff:*),Bash(npm:*)"'
 
