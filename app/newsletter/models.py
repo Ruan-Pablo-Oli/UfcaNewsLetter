@@ -88,6 +88,11 @@ class Perfil(models.Model):
         default=FrequenciaEmail.DIARIA,
         help_text="Frequência de envio da newsletter por e-mail (issue #24).",
     )
+    push_ativo = models.BooleanField(
+        default=False,
+        help_text="Se o perfil recebe notificações push (issue #22). Default False: "
+        "push exige opt-in explícito do navegador.",
+    )
 
     def __str__(self):
         return f"{self.user} ({self.curso})"
@@ -265,6 +270,32 @@ class Entrega(models.Model):
 
     def __str__(self):
         return f"{self.conteudo} -> {self.usuario} ({self.canal})"
+
+
+class PushSubscription(models.Model):
+    """Assinatura Web Push de um navegador/dispositivo do usuário (issue #22).
+
+    Guarda o que a Push API do navegador devolve em `PushManager.subscribe()`:
+    o `endpoint` (URL do serviço de push do navegador) e as chaves usadas para
+    cifrar a mensagem, não um "token de dispositivo" (vocabulário de FCM).
+    Um usuário pode ter várias, uma por navegador/dispositivo.
+    """
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="push_subscriptions",
+    )
+    endpoint = models.URLField(max_length=500, unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"{self.usuario} ({self.endpoint[:40]}…)"
 
 
 class Feedback(models.Model):

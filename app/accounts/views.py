@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from newsletter.forms import PerfilForm
-from newsletter.models import Interesse, Perfil
+from newsletter.models import Interesse, Perfil, PushSubscription
 
 from .forms import SignUpForm
 
@@ -105,6 +105,7 @@ def api_perfil(request):
             "periodo": perfil.periodo,
             "interesses": list(perfil.interesses.values_list("id", flat=True)),
             "frequencia_email": perfil.frequencia_email,
+            "push_ativo": perfil.push_ativo,
         })
 
     try:
@@ -125,6 +126,7 @@ def api_perfil(request):
         "periodo": perfil.periodo,
         "interesses": list(perfil.interesses.values_list("id", flat=True)),
         "frequencia_email": perfil.frequencia_email,
+        "push_ativo": perfil.push_ativo,
     })
 
 
@@ -148,6 +150,41 @@ def api_frequencias_email(request):
             {"value": f.value, "label": f.label} for f in Perfil.FrequenciaEmail
         ]
     })
+
+
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def api_push_subscription(request):
+    """Registra ou remove uma `PushSubscription` do usuário logado (issue #22).
+
+    Corpo esperado (formato de `PushSubscription.toJSON()` do navegador):
+    ``{"endpoint": "...", "keys": {"p256dh": "...", "auth": "..."}}``.
+    Em DELETE, apenas ``endpoint`` é necessário.
+    """
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"erro": "JSON inválido."}, status=400)
+
+    endpoint = data.get("endpoint", "")
+    if not endpoint:
+        return JsonResponse({"erro": "endpoint é obrigatório."}, status=400)
+
+    if request.method == "DELETE":
+        PushSubscription.objects.filter(endpoint=endpoint, usuario=request.user).delete()
+        return JsonResponse({"mensagem": "Subscription removida."})
+
+    keys = data.get("keys", {})
+    p256dh = keys.get("p256dh", "")
+    auth = keys.get("auth", "")
+    if not p256dh or not auth:
+        return JsonResponse({"erro": "keys.p256dh e keys.auth são obrigatórios."}, status=400)
+
+    PushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={"usuario": request.user, "p256dh": p256dh, "auth": auth},
+    )
+    return JsonResponse({"mensagem": "Subscription registrada."}, status=201)
 
 
 @login_required
