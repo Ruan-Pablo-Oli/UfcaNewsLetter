@@ -16,10 +16,15 @@ class PerfilForm(forms.ModelForm):
             "required": f"Selecione ao menos {Perfil.MIN_INTERESSES} área de interesse."
         },
     )
+    frequencia_email = forms.ChoiceField(
+        choices=Perfil.FrequenciaEmail.choices,
+        required=False,
+        label="Frequência de e-mail",
+    )
 
     class Meta:
         model = Perfil
-        fields = ["curso", "periodo", "interesses"]
+        fields = ["curso", "periodo", "interesses", "frequencia_email"]
 
     def clean_interesses(self):
         interesses = self.cleaned_data["interesses"]
@@ -28,3 +33,8 @@ class PerfilForm(forms.ModelForm):
                 f"Selecione no máximo {Perfil.MAX_INTERESSES} áreas de interesse."
             )
         return interesses
+
+    def clean_frequencia_email(self):
+        # Campo opcional na edição: se o cliente não enviar (ex.: telas que só
+        # mexem em curso/interesses), preserva a frequência já configurada.
+        return self.cleaned_data.get("frequencia_email") or self.instance.frequencia_email

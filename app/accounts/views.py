@@ -104,6 +104,7 @@ def api_perfil(request):
             "curso": perfil.curso,
             "periodo": perfil.periodo,
             "interesses": list(perfil.interesses.values_list("id", flat=True)),
+            "frequencia_email": perfil.frequencia_email,
         })
 
     try:
@@ -123,6 +124,7 @@ def api_perfil(request):
         "curso": perfil.curso,
         "periodo": perfil.periodo,
         "interesses": list(perfil.interesses.values_list("id", flat=True)),
+        "frequencia_email": perfil.frequencia_email,
     })
 
 
@@ -137,6 +139,15 @@ def api_cursos(request):
 def api_interesses(request):
     interesses = Interesse.objects.all().values("id", "nome")
     return JsonResponse({"interesses": list(interesses)})
+
+
+@require_http_methods(["GET"])
+def api_frequencias_email(request):
+    return JsonResponse({
+        "frequencias": [
+            {"value": f.value, "label": f.label} for f in Perfil.FrequenciaEmail
+        ]
+    })
 
 
 @login_required

@@ -10,9 +10,11 @@ export function Perfil() {
   const [tab, setTab] = useState('curso')
   const [cursos, setCursos] = useState([])
   const [interessesList, setInteressesList] = useState([])
+  const [frequencias, setFrequencias] = useState([])
   const [curso, setCurso] = useState('')
   const [periodo, setPeriodo] = useState(1)
   const [interesses, setInteresses] = useState([])
+  const [frequenciaEmail, setFrequenciaEmail] = useState('diaria')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -21,16 +23,19 @@ export function Perfil() {
   useEffect(() => {
     async function load() {
       try {
-        const [perfil, c, i] = await Promise.all([
+        const [perfil, c, i, f] = await Promise.all([
           api.get('/accounts/api/perfil/'),
           api.get('/accounts/api/cursos/'),
           api.get('/accounts/api/interesses/'),
+          api.get('/accounts/api/frequencias-email/'),
         ])
         setCurso(perfil.curso)
         setPeriodo(perfil.periodo)
         setInteresses(perfil.interesses || [])
+        setFrequenciaEmail(perfil.frequencia_email || 'diaria')
         setCursos(c.cursos)
         setInteressesList(i.interesses)
+        setFrequencias(f.frequencias)
       } catch {
         setError('Erro ao carregar perfil.')
       } finally {
@@ -52,7 +57,12 @@ export function Perfil() {
     setSuccess('')
     setSaving(true)
     try {
-      await api.patch('/accounts/api/perfil/', { curso, periodo, interesses })
+      await api.patch('/accounts/api/perfil/', {
+        curso,
+        periodo,
+        interesses,
+        frequencia_email: frequenciaEmail,
+      })
       setSuccess('Perfil atualizado com sucesso!')
     } catch (err) {
       setError(err.message)
@@ -135,6 +145,10 @@ export function Perfil() {
                 <span className="perfil-tab-count">{interesses.length}</span>
               )}
             </button>
+            <button
+              className={`perfil-tab ${tab === 'entrega' ? 'active' : ''}`}
+              onClick={() => setTab('entrega')}
+            >Frequência de entrega</button>
           </div>
 
           {error && <p className="error-message">{error}</p>}
@@ -193,6 +207,22 @@ export function Perfil() {
                     </label>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {tab === 'entrega' && (
+              <div className="input-group">
+                <label htmlFor="frequencia_email">Frequência de e-mail</label>
+                <select
+                  id="frequencia_email"
+                  value={frequenciaEmail}
+                  onChange={(e) => setFrequenciaEmail(e.target.value)}
+                  className="input-select"
+                >
+                  {frequencias.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </select>
               </div>
             )}
 
