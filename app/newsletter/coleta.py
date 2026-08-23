@@ -20,6 +20,7 @@ from django.utils import timezone
 from django.utils.timezone import is_naive, make_aware
 
 from .collectors import (
+    CalendarioCollector,
     CollectionError,
     ConcursosSelecoesCollector,
     NewsInformeCollector,
@@ -33,6 +34,7 @@ from .models import Conteudo, Fonte
 REGISTRO_COLETORES = {
     Fonte.Tipo.HTML: NewsInformeCollector,
     Fonte.Tipo.CONCURSO: ConcursosSelecoesCollector,
+    Fonte.Tipo.CALENDARIO: CalendarioCollector,
 }
 
 
