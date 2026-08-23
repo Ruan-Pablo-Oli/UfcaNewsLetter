@@ -3,6 +3,7 @@
 `pywebpush.webpush` é sempre mockado: os testes não podem depender de chave
 VAPID real nem de rede.
 """
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -58,7 +59,7 @@ def subscription(perfil):
 # --- montagem ---
 
 
-def test_push_desativado_nao_monta_nada(fonte, perfil):
+def test_push_desativado_nao_monta_nada(fonte, perfil, subscription):
     _criar_conteudo(fonte)
     perfil.push_ativo = False
     perfil.save()
@@ -66,20 +67,20 @@ def test_push_desativado_nao_monta_nada(fonte, perfil):
     assert montar_notificacoes_perfil(perfil) == []
 
 
-def test_monta_aprovados_relevantes(fonte, perfil):
+def test_monta_aprovados_relevantes(fonte, perfil, subscription):
     _criar_conteudo(fonte)
 
     assert [c.titulo for c in montar_notificacoes_perfil(perfil)] == ["Edital A"]
 
 
-def test_nao_inclui_ja_entregues_por_push(fonte, perfil):
+def test_nao_inclui_ja_entregues_por_push(fonte, perfil, subscription):
     conteudo = _criar_conteudo(fonte)
     Entrega.objects.create(conteudo=conteudo, usuario=perfil.user, canal=Entrega.Canal.PUSH)
 
     assert montar_notificacoes_perfil(perfil) == []
 
 
-def test_nao_inclui_pendente(fonte, perfil):
+def test_nao_inclui_pendente(fonte, perfil, subscription):
     Conteudo.objects.create(
         titulo="Pendente",
         corpo="c",
@@ -89,6 +90,31 @@ def test_nao_inclui_pendente(fonte, perfil):
     )
 
     assert montar_notificacoes_perfil(perfil) == []
+
+
+def test_sem_subscription_nao_monta_nada(fonte, perfil):
+    """Sem assinatura não há para onde enviar — nem entra na contagem do dry-run."""
+    _criar_conteudo(fonte)
+
+    assert montar_notificacoes_perfil(perfil) == []
+
+
+def test_nao_notifica_conteudo_anterior_ao_opt_in(fonte, perfil, subscription):
+    """CA: só conteúdo novo. Ativar push não dispara o histórico todo de uma vez."""
+    antigo = _criar_conteudo(fonte, titulo="Antigo", hash_dedup="h-antigo")
+    antigo.data_publicacao = subscription.criado_em - timedelta(days=1)
+    antigo.save()
+    _criar_conteudo(fonte, titulo="Novo", hash_dedup="h-novo")
+
+    assert [c.titulo for c in montar_notificacoes_perfil(perfil)] == ["Novo"]
+
+
+def test_conteudo_publicado_apos_o_opt_in_entra(fonte, perfil, subscription):
+    novo = _criar_conteudo(fonte, titulo="Depois", hash_dedup="h-depois")
+    novo.data_publicacao = subscription.criado_em + timedelta(minutes=5)
+    novo.save()
+
+    assert [c.titulo for c in montar_notificacoes_perfil(perfil)] == ["Depois"]
 
 
 # --- envio ---

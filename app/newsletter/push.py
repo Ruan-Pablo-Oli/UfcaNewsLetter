@@ -6,8 +6,11 @@ relevantes ainda não entregues por push, envia via Web Push padrão
 cada conteúdo entregue em `Entrega` — mesmo cursor usado por `digest.py`, que
 garante (via `unique_together`) que ninguém recebe o mesmo conteúdo duas vezes.
 
-Diferente do digest por e-mail, aqui não há "período": qualquer conteúdo
-aprovado e relevante ainda não entregue por push é enviado, um por vez.
+Diferente do digest por e-mail, aqui não há "período" — mas há um corte: só
+entra conteúdo publicado a partir da assinatura mais antiga do usuário. Sem
+isso, ativar o push faria o estudante receber uma notificação para cada
+conteúdo relevante já aprovado no banco, dezenas de uma vez; e conteúdo
+anterior ao opt-in não é "novo" para quem acabou de assinar.
 
 Web Push só confirma que o serviço do navegador aceitou a mensagem (HTTP
 201) — não que ela foi exibida. `Entrega` registra esse aceite. Um HTTP
@@ -28,9 +31,27 @@ from .models import Conteudo, Entrega, Perfil, PushSubscription
 SUBSCRIPTION_EXPIRADA_STATUS = (404, 410)
 
 
+def inicio_da_assinatura(perfil: Perfil):
+    """Momento a partir do qual o usuário pode ser notificado; None se não assinou.
+
+    É a `PushSubscription` mais antiga do usuário — o corte que impede notificar
+    em massa o histórico anterior ao opt-in.
+    """
+    return (
+        PushSubscription.objects.filter(usuario=perfil.user)
+        .order_by("criado_em")
+        .values_list("criado_em", flat=True)
+        .first()
+    )
+
+
 def montar_notificacoes_perfil(perfil: Perfil) -> list[Conteudo]:
-    """Conteúdos aprovados/relevantes do perfil ainda não entregues por push."""
+    """Conteúdos aprovados/relevantes publicados desde o opt-in e não entregues."""
     if not perfil.push_ativo:
+        return []
+
+    inicio = inicio_da_assinatura(perfil)
+    if inicio is None:
         return []
 
     entregues = Entrega.objects.filter(
@@ -38,7 +59,10 @@ def montar_notificacoes_perfil(perfil: Perfil) -> list[Conteudo]:
     ).values_list("conteudo_id", flat=True)
 
     return list(
-        feed_queryset_for_perfil(perfil).exclude(id__in=entregues).order_by("-data_publicacao")
+        feed_queryset_for_perfil(perfil)
+        .filter(data_publicacao__gte=inicio)
+        .exclude(id__in=entregues)
+        .order_by("-data_publicacao")
     )
 
 
