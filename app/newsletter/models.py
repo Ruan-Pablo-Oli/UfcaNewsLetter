@@ -60,6 +60,14 @@ class Perfil(models.Model):
     MIN_INTERESSES = 1
     MAX_INTERESSES = 5
 
+    class FrequenciaEmail(models.TextChoices):
+        """Frequência do digest por e-mail (issue #24)."""
+
+        DIARIA = "diaria", "Diária"
+        SEMANAL = "semanal", "Semanal"
+        DESATIVADO = "desativado", "Desativado"
+
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -73,6 +81,12 @@ class Perfil(models.Model):
         Interesse,
         related_name="perfis",
         blank=True,
+    )
+    frequencia_email = models.CharField(
+        max_length=20,
+        choices=FrequenciaEmail.choices,
+        default=FrequenciaEmail.DIARIA,
+        help_text="Frequência de envio da newsletter por e-mail (issue #24).",
     )
 
     def __str__(self):
