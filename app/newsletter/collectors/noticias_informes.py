@@ -219,14 +219,23 @@ class NewsInformeCollector:
         path = re.sub(r"/page/\d+$", "", path)
         return path if path else "/"
 
-    @staticmethod
-    def _is_article_path(path: str, base: str) -> bool:
-        if not path.startswith(base.rstrip("/") + "/"):
+    # Categorias de informe (`/noticias/informe_category/<slug>/`) listam itens
+    # hospedados em `/informes/<slug>/`, fora do prefixo da própria listagem.
+    # Aceitar esses prefixos fixos (além do prefixo da listagem) resolve o caso
+    # sem afrouxar a ponto de capturar links de menu como `/instituicao/...`.
+    _ARTICLE_PATH_PREFIXES = ("/noticias/", "/informes/")
+    _BLOCKED_PATH_SEGMENTS = {"categoria", "page", "tag", "author", "informe_category"}
+
+    @classmethod
+    def _is_article_path(cls, path: str, base: str) -> bool:
+        prefixes = (base.rstrip("/") + "/", *cls._ARTICLE_PATH_PREFIXES)
+        matched_prefix = next((prefix for prefix in prefixes if path.startswith(prefix)), None)
+        if matched_prefix is None:
             return False
-        suffix = path[len(base.rstrip("/") + "/") :].strip("/")
-        if not suffix or suffix.startswith(("categoria/", "page/", "tag/", "author/")):
+        suffix = path[len(matched_prefix) :].strip("/")
+        if not suffix or "/" in suffix:
             return False
-        return "/" not in suffix
+        return suffix not in cls._BLOCKED_PATH_SEGMENTS
 
     @staticmethod
     def _canonicalize_url(url: str) -> str:

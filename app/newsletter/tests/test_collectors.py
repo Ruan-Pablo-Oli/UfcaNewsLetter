@@ -123,3 +123,48 @@ def test_parse_post_rejects_missing_title():
             "<html><body><div class='entry-content'><p>Texto</p></div></body></html>",
             "https://www.ufca.edu.br/noticias/sem-titulo/",
         )
+
+
+def test_parse_listing_extracts_informe_category_items_outside_listing_prefix():
+    article_urls, _ = NewsInformeCollector().parse_listing(
+        fixture("informe-category-listing.html"),
+        "https://www.ufca.edu.br/noticias/informe_category/graduacao/",
+    )
+
+    assert article_urls == ["https://www.ufca.edu.br/informes/matriculas-2026-2/"]
+
+
+def test_collect_informe_category_extracts_items_under_informes_prefix():
+    pages = {
+        "https://www.ufca.edu.br/noticias/informe_category/graduacao/": fixture(
+            "informe-category-listing.html"
+        ),
+        "https://www.ufca.edu.br/informes/matriculas-2026-2/": fixture(
+            "informe-category-post.html"
+        ),
+    }
+
+    records = NewsInformeCollector().collect(
+        "https://www.ufca.edu.br/noticias/informe_category/graduacao/",
+        fetch_html=pages.__getitem__,
+    )
+
+    assert [record.title for record in records] == ["Matrículas 2026.2"]
+    assert records[0].canonical_url == "https://www.ufca.edu.br/informes/matriculas-2026-2/"
+
+
+def test_collect_informe_category_skips_item_already_known_from_other_source():
+    pages = {
+        "https://www.ufca.edu.br/noticias/informe_category/graduacao/": fixture(
+            "informe-category-listing.html"
+        ),
+    }
+    known = {"https://www.ufca.edu.br/informes/matriculas-2026-2/"}
+
+    records = NewsInformeCollector().collect(
+        "https://www.ufca.edu.br/noticias/informe_category/graduacao/",
+        fetch_html=pages.__getitem__,
+        known_canonical_urls=known,
+    )
+
+    assert records == []
