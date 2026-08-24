@@ -172,24 +172,35 @@ def classificar_conteudo(conteudo: Conteudo) -> bool:
     Não sobrescreve uma categoria já atribuída (manual ou por coleta): o
     classificador só preenche o que está vazio. Cursos são preenchidos apenas
     quando o campo ainda está vazio, preservando direcionamento manual.
+
+    Conteúdo que ganha categoria é **aprovado automaticamente** (ver ADR-009):
+    ter casado com uma regra é a evidência que dispensa a revisão humana. O que
+    fica sem categoria continua `pendente`, na fila do admin (US-05.2, #27).
     """
     if conteudo.categoria_id is not None:
         return False
 
     tipo, cursos = classificar_texto(conteudo.titulo, conteudo.corpo)
     alterado = False
+    campos = ["categoria", "cursos"]
 
     if tipo is not None:
         categoria, _ = Categoria.objects.get_or_create(nome=tipo)
         conteudo.categoria = categoria
         alterado = True
 
+        # Só promove o que está esperando decisão: conteúdo já descartado por um
+        # revisor não volta ao feed por ter sido reclassificado depois.
+        if conteudo.status == Conteudo.Status.PENDENTE:
+            conteudo.status = Conteudo.Status.APROVADO
+            campos.append("status")
+
     if cursos and not conteudo.cursos:
         conteudo.cursos = cursos
         alterado = True
 
     if alterado:
-        conteudo.save(update_fields=["categoria", "cursos"])
+        conteudo.save(update_fields=campos)
     return alterado
 
 

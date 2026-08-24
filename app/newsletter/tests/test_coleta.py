@@ -84,6 +84,25 @@ def test_coletar_fonte_cria_conteudo_pendente(fonte_html):
 
 
 @pytest.mark.django_db
+def test_coletar_aprova_o_que_o_classificador_categoriza(fonte_html):
+    """Conteúdo classificável entra publicável, sem passar pela fila (ADR-009)."""
+    post = fixture("noticias-post.html").replace(
+        "Primeira notícia", "Edital de Monitoria 2026.2"
+    )
+    pages = {
+        "https://www.ufca.edu.br/noticias/": fixture("noticias-listing.html"),
+        "https://www.ufca.edu.br/noticias/primeira/": post,
+    }
+    resultado = coletar_fonte(fonte_html, fetch_html=pages.__getitem__)
+
+    assert resultado.criados == 1
+    conteudo = Conteudo.objects.get(hash_dedup__isnull=False)
+    assert conteudo.categoria is not None
+    assert conteudo.categoria.nome == "edital"
+    assert conteudo.status == Conteudo.Status.APROVADO
+
+
+@pytest.mark.django_db
 def test_coletar_fonte_deduplica_por_hash(fonte_html):
     pages = {
         "https://www.ufca.edu.br/noticias/": fixture("noticias-listing.html"),

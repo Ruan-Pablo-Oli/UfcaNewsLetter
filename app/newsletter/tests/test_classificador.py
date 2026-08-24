@@ -149,6 +149,26 @@ def test_conteudo_sem_evidencia_fica_na_fila(db, fonte):
     assert conteudo.status == Conteudo.Status.PENDENTE
 
 
+def test_conteudo_classificado_e_aprovado_automaticamente(db, fonte, categoria_edital):
+    conteudo = _conteudo(fonte, "Edital PIBIC 2026", "Bolsas de iniciação científica.")
+
+    assert classificar_conteudo(conteudo) is True
+    conteudo.refresh_from_db()
+    assert conteudo.categoria == categoria_edital
+    assert conteudo.status == Conteudo.Status.APROVADO
+
+
+def test_conteudo_descartado_nao_volta_ao_feed_ao_ser_classificado(db, fonte, categoria_edital):
+    conteudo = _conteudo(fonte, "Edital PIBIC 2026", "Bolsas de iniciação científica.")
+    conteudo.status = Conteudo.Status.DESCARTADO
+    conteudo.save(update_fields=["status"])
+
+    assert classificar_conteudo(conteudo) is True
+    conteudo.refresh_from_db()
+    assert conteudo.categoria == categoria_edital
+    assert conteudo.status == Conteudo.Status.DESCARTADO
+
+
 def test_classificar_pendentes_resumo(db, fonte, categoria_edital):
     _conteudo(fonte, "Edital PIBIC 2026/2027", "Bolsas de iniciação científica.")
     _conteudo(fonte, "Reunião ordinária", "Pauta enviada por e-mail.")
