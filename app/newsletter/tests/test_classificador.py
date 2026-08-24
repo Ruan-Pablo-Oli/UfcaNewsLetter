@@ -6,8 +6,9 @@ from newsletter.classificador import (
     classificar_conteudo,
     classificar_pendentes,
     classificar_texto,
+    direcionar_conteudo,
 )
-from newsletter.models import Categoria, Conteudo, Fonte
+from newsletter.models import Categoria, Conteudo, Fonte, Interesse, Perfil
 
 
 @pytest.fixture
@@ -209,3 +210,56 @@ def test_comando_sem_pendentes(db, capsys):
     call_command("classificar")
     saida = capsys.readouterr().out
     assert "Nenhum conteúdo sem categoria" in saida
+
+
+# --- direcionamento (ADR-011) ----------------------------------------------
+
+
+def test_conteudo_sem_curso_citado_vira_universal(db, fonte):
+    conteudo = _conteudo(fonte, "Restaurante Universitário muda o cardápio")
+
+    assert direcionar_conteudo(conteudo) is True
+    conteudo.refresh_from_db()
+    assert conteudo.universal is True
+    assert conteudo.cursos == []
+
+
+def test_conteudo_que_cita_curso_vai_so_para_o_curso(db, fonte):
+    conteudo = _conteudo(
+        fonte,
+        "Monitoria em Engenharia de Software",
+        "Seleção de monitores para o curso de engenharia de software.",
+    )
+
+    assert direcionar_conteudo(conteudo) is True
+    conteudo.refresh_from_db()
+    assert conteudo.cursos == [Perfil.Curso.ENGENHARIA_DE_SOFTWARE]
+    # Direcionado a um curso não é mural institucional.
+    assert conteudo.universal is False
+
+
+def test_direcionamento_amarra_interesses_mencionados(db, fonte):
+    conteudo = _conteudo(
+        fonte,
+        "Edital de bolsas de iniciação científica",
+        "Inscrições para bolsistas do PIBIC.",
+    )
+
+    direcionar_conteudo(conteudo)
+
+    nomes = set(conteudo.interesses.values_list("nome", flat=True))
+    assert {"Editais", "Bolsas", "Iniciação Científica"} <= nomes
+
+
+def test_direcionamento_nao_sobrescreve_curadoria_manual(db, fonte):
+    conteudo = _conteudo(fonte, "Aviso geral da reitoria")
+    conteudo.cursos = [Perfil.Curso.DIREITO]
+    conteudo.save(update_fields=["cursos"])
+    conteudo.interesses.set([Interesse.objects.create(nome="Escolhido à mão")])
+
+    direcionar_conteudo(conteudo)
+    conteudo.refresh_from_db()
+
+    assert conteudo.cursos == [Perfil.Curso.DIREITO]
+    assert conteudo.universal is False
+    assert list(conteudo.interesses.values_list("nome", flat=True)) == ["Escolhido à mão"]
