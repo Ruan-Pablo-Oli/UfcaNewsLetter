@@ -46,10 +46,16 @@ async function lerJson(response) {
 }
 
 function mensagemDeErro(data, status) {
-  const erro = data?.erro
+  // O backend não é uniforme: a maioria das views usa "erro", e o painel de
+  // fontes (#26) usa "erros" para validação por campo. Aceitamos os dois.
+  const erro = data?.erro ?? data?.erros
   if (typeof erro === 'string') return erro
-  // Erros de formulário chegam como {campo: mensagem}; mostramos a primeira.
-  if (erro && typeof erro === 'object') return Object.values(erro)[0]
+  // Erros de formulário chegam como {campo: mensagem}; mostramos a primeira,
+  // com o nome do campo, que sozinha ("obrigatório") não diria a qual se refere.
+  if (erro && typeof erro === 'object') {
+    const [campo, mensagem] = Object.entries(erro)[0]
+    return data?.erros ? `${campo}: ${mensagem}` : mensagem
+  }
   if (status === 403) return 'Você não tem permissão para esta ação.'
   if (status === 404) return 'Conteúdo não encontrado.'
   if (status >= 500) return 'O servidor falhou ao processar a solicitação.'

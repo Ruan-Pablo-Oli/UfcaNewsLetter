@@ -8,6 +8,7 @@ import { Perfil } from './pages/Perfil'
 import { Busca } from './pages/Busca'
 import { Historico } from './pages/Historico'
 import { Revisao } from './pages/Revisao'
+import { Fontes } from './pages/Fontes'
 import './App.css'
 
 function App() {
@@ -38,6 +39,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Historico />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fontes"
+            element={
+              <ProtectedRoute staff>
+                <Fontes />
               </ProtectedRoute>
             }
           />
