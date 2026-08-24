@@ -109,17 +109,43 @@ def feedback(request):
 
 
 @login_required
+@require_http_methods(["DELETE"])
+def feedback_remover(request, conteudo_id: int):
+    """`DELETE /feedback/<conteudo_id>/` — apaga a marcação do estudante.
+
+    Desfazer um 👎 é apagar o registro, não trocá-lo por 👍: marcar como útil
+    o que se quis apenas destravar impulsionaria a categoria na ordenação do
+    feed. Sem esta rota, um 👎 acidental era permanente — o conteúdo saía do
+    feed e não havia como trazê-lo de volta pela interface.
+    """
+    removidos, _ = Feedback.objects.filter(
+        usuario=request.user, conteudo_id=conteudo_id
+    ).delete()
+    if not removidos:
+        return JsonResponse({"erro": "Marcação não encontrada."}, status=404)
+    return JsonResponse({"conteudo_id": conteudo_id, "removido": True})
+
+
+@login_required
 def feedback_historico(request):
-    """`GET /feedback/historico/` — histórico paginado das marcações de relevância do estudante."""
+    """`GET /feedback/historico/?tipo=negativo` — marcações de relevância do estudante.
+
+    Sem `tipo`, devolve todas. O filtro existe para a tela de conteúdos
+    marcados como irrelevantes, que só se interessa pelos negativos.
+    """
     page_number = _parse_int(request.GET.get("page"), 1)
     page_size = _parse_int(request.GET.get("page_size"), FEED_PAGE_SIZE_PADRAO)
     page_size = max(1, min(page_size, FEED_PAGE_SIZE_MAXIMO))
 
     registros = (
         Feedback.objects.filter(usuario=request.user)
-        .select_related("conteudo")
+        .select_related("conteudo", "conteudo__categoria", "conteudo__fonte")
         .order_by("-criado_em")
     )
+
+    tipo = request.GET.get("tipo")
+    if tipo in Feedback.Tipo.values:
+        registros = registros.filter(tipo=tipo)
     pagina = Paginator(registros, page_size).get_page(page_number)
 
     resultados = [
@@ -127,6 +153,14 @@ def feedback_historico(request):
             "id": registro.id,
             "conteudo_id": registro.conteudo_id,
             "conteudo_titulo": registro.conteudo.titulo,
+            # Sem resumo, fonte e link a tela viraria uma lista de títulos soltos,
+            # em que o estudante não reconhece o que marcou.
+            "conteudo_resumo": resumo_para_exibicao(registro.conteudo),
+            "conteudo_url": registro.conteudo.url,
+            "categoria": (
+                registro.conteudo.categoria.nome if registro.conteudo.categoria else None
+            ),
+            "fonte": registro.conteudo.fonte.nome,
             "tipo": registro.tipo,
             "criado_em": registro.criado_em.isoformat(),
         }

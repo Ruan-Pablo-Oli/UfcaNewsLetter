@@ -1332,3 +1332,29 @@
   border-radius: 8px;
   border: 1px solid rgba(83, 43, 29, 0.2);
 }
+
+/* ---- Minhas marcações (US-01.3) --------------------------------------- */
+
+.marcacoes-abas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.marcacoes-aba {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 100px;
+  border: 1px solid rgba(83, 43, 29, 0.15);
+  background: #fff;
+  color: #7a6a5a;
+  cursor: pointer;
+}
+
+.marcacoes-aba.ativa {
+  background: rgba(80, 189, 202, 0.14);
+  border-color: rgba(42, 122, 132, 0.3);
+  color: #2a7a84;
+}

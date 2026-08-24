@@ -136,6 +136,10 @@ export function Dashboard() {
               <span className="nav-icon">🕘</span>
               Histórico
             </Link>
+            <Link to="/marcacoes" className="dashboard-nav-item">
+              <span className="nav-icon">🏷️</span>
+              Minhas marcações
+            </Link>
             <Link to="/perfil" className="dashboard-nav-item">
               <span className="nav-icon">👤</span>
               Perfil Acadêmico
