@@ -14,7 +14,7 @@ import re
 import unicodedata
 from typing import Iterable
 
-from .models import Categoria, Conteudo, Perfil
+from .models import Categoria, Conteudo, Interesse, Perfil
 
 # Cada regra é (tipo, lista de padrões). A ordem das regras define a
 # prioridade: a primeira regra com pelo menos um padrão presente vence.
@@ -129,6 +129,50 @@ REGRA_CURSOS: dict[str, list[str]] = {
 }
 
 
+# Mapeia nome do `Interesse` (ver seed_interesses) -> padrões de menção no
+# texto. Mesmo formato das regras de curso: casado em texto normalizado.
+REGRA_INTERESSES: dict[str, list[str]] = {
+    "Editais": [r"\bedital", r"chamada\s+p[úu]blica", r"processo\s+seletivo"],
+    "Bolsas": [r"\bbolsas?\b", r"\bbolsista", r"aux[íi]lio\s+(moradia|financeiro|estudantil)"],
+    "Estágios": [r"\best[áa]gio", r"\bestagi[áa]ri"],
+    "Eventos": [
+        r"\bsemana\b",
+        r"\bsimp[óo]sio",
+        r"\bpalestra",
+        r"\bworkshop",
+        r"\bcongresso",
+        r"\bsemin[áa]rio",
+        r"\bmostra\b",
+        r"\bhackathon",
+    ],
+    "Monitoria": [r"\bmonitoria", r"\bmonitor(es|ia)?\b"],
+    "Iniciação Científica": [
+        r"inicia[çc][ãa]o\s+cient[íi]fica",
+        r"\bpibic\b",
+        r"\bpiict\b",
+        r"\bpesquisa\s+cient[íi]fica",
+    ],
+    "Extensão": [r"\bextens[ãa]o\b", r"\bpibeu\b", r"curso\s+de\s+extens[ãa]o"],
+    "Restaurante Universitário": [
+        r"restaurante\s+universit[áa]rio",
+        r"\bcard[áa]pio",
+        r"\brefeit[óo]rio",
+        r"\bru\b",
+    ],
+    "Calendário Acadêmico": [
+        r"calend[áa]rio\s+acad[êe]mico",
+        r"\bmatr[íi]cula\b",
+        r"\btrancamento",
+        r"\bsemestre\s+letivo",
+    ],
+    "Concursos e Seleções": [
+        r"concurso\s+p[úu]blico",
+        r"\bconcurso\b",
+        r"sele[çc][ãa]o\s+de\s+(professor|docente|t[ée]cnico)",
+    ],
+}
+
+
 def _normalizar(texto: str) -> str:
     """Minúsculas e sem acentos, para casar padrões independente de grafia."""
     texto = unicodedata.normalize("NFD", texto)
@@ -154,6 +198,15 @@ def _cursos(texto_normalizado: str) -> list[str]:
     return encontrados
 
 
+def _interesses(texto_normalizado: str) -> list[str]:
+    """Retorna os nomes de `Interesse` mencionados no texto."""
+    encontrados = []
+    for interesse, padroes in REGRA_INTERESSES.items():
+        if any(re.search(padrao, texto_normalizado) for padrao in padroes):
+            encontrados.append(interesse)
+    return encontrados
+
+
 def classificar_texto(titulo: str, corpo: str) -> tuple[str | None, list[str]]:
     """Classifica um texto e retorna `(categoria_tipo | None, cursos)`.
 
@@ -166,8 +219,54 @@ def classificar_texto(titulo: str, corpo: str) -> tuple[str | None, list[str]]:
     return tipo, _cursos(texto)
 
 
+def direcionar_conteudo(conteudo: Conteudo) -> bool:
+    """Define para quem o conteúdo aparece no feed; retorna True se mudou algo.
+
+    O feed (`feed_queryset_for_perfil`) exige `universal`, **ou** curso do
+    perfil em `cursos`, **ou** interesse em comum. O coletor não preenche nada
+    disso, então sem este passo o conteúdo coletado ficaria invisível para
+    todos — foi o que aconteceu com as primeiras coletas reais.
+
+    Regras (ADR-011):
+    - cita curso(s) → vai só para esses cursos;
+    - não cita nenhum → `universal`, como um mural institucional: aviso da UFCA
+      é para toda a comunidade até prova em contrário;
+    - interesses mencionados são amarrados em qualquer caso, para enriquecer o
+      motivo da recomendação e a ordenação por relevância.
+
+    Nada é sobrescrito: direcionamento manual (ou de um seed) tem precedência.
+    """
+    texto = _normalizar(f"{conteudo.titulo}\n{conteudo.corpo}")
+    alterado = False
+
+    if not conteudo.cursos:
+        cursos = _cursos(texto)
+        if cursos:
+            conteudo.cursos = cursos
+            alterado = True
+
+    if not conteudo.cursos and not conteudo.universal:
+        conteudo.universal = True
+        alterado = True
+
+    if alterado:
+        conteudo.save(update_fields=["cursos", "universal"])
+
+    # M2M não entra em update_fields; só amarra se ainda não houver nenhum,
+    # para não desfazer curadoria manual.
+    if not conteudo.interesses.exists():
+        nomes = _interesses(texto)
+        if nomes:
+            conteudo.interesses.set(
+                [Interesse.objects.get_or_create(nome=nome)[0] for nome in nomes]
+            )
+            alterado = True
+
+    return alterado
+
+
 def classificar_conteudo(conteudo: Conteudo) -> bool:
-    """Classifica um `Conteudo` e salva; retorna True se a categoria mudou.
+    """Classifica um `Conteudo` e salva; retorna True se atribuiu categoria.
 
     Não sobrescreve uma categoria já atribuída (manual ou por coleta): o
     classificador só preenche o que está vazio. Cursos são preenchidos apenas
@@ -180,14 +279,14 @@ def classificar_conteudo(conteudo: Conteudo) -> bool:
     if conteudo.categoria_id is not None:
         return False
 
-    tipo, cursos = classificar_texto(conteudo.titulo, conteudo.corpo)
-    alterado = False
-    campos = ["categoria", "cursos"]
+    tipo, _ = classificar_texto(conteudo.titulo, conteudo.corpo)
+    classificou = False
+    campos = ["categoria"]
 
     if tipo is not None:
-        categoria, _ = Categoria.objects.get_or_create(nome=tipo)
+        categoria, _c = Categoria.objects.get_or_create(nome=tipo)
         conteudo.categoria = categoria
-        alterado = True
+        classificou = True
 
         # Só promove o que está esperando decisão: conteúdo já descartado por um
         # revisor não volta ao feed por ter sido reclassificado depois.
@@ -195,13 +294,16 @@ def classificar_conteudo(conteudo: Conteudo) -> bool:
             conteudo.status = Conteudo.Status.APROVADO
             campos.append("status")
 
-    if cursos and not conteudo.cursos:
-        conteudo.cursos = cursos
-        alterado = True
-
-    if alterado:
+    if classificou:
         conteudo.save(update_fields=campos)
-    return alterado
+
+    # Cursos, interesses e universal ficam com direcionar_conteudo (também
+    # usado sozinho no backfill). É efeito colateral, e de propósito fora do
+    # valor de retorno: quem chama conta *classificação*, e conteúdo sem
+    # categoria continua na fila de revisão mesmo tendo ganhado direcionamento.
+    direcionar_conteudo(conteudo)
+
+    return classificou
 
 
 def classificar_pendentes(conteudos: Iterable[Conteudo]) -> dict[str, int]:
