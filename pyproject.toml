@@ -2,6 +2,12 @@
 DJANGO_SETTINGS_MODULE = "ufcanewsletter.settings"
 pythonpath = ["app"]
 python_files = ["test_*.py", "*_test.py", "tests.py"]
+filterwarnings = [
+    # `collectstatic` não roda na suíte (só no build da imagem), então o
+    # WhiteNoise avisa a cada cliente de teste que STATIC_ROOT não existe. O
+    # aviso não diz nada sobre o código testado.
+    "ignore:No directory at:UserWarning",
+]
 
 [tool.ruff]
 line-length = 100

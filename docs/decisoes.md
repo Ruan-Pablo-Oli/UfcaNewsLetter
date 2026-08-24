@@ -196,3 +196,39 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
     revertida por um processo automático.
   - Se a precisão se mostrar insuficiente, o passo natural é a alternativa 2
     (flag por fonte) sobre esta política, não o retorno à revisão obrigatória.
+
+
+## ADR-010 — Produção: gunicorn + WhiteNoise servindo a SPA na mesma imagem
+
+- **Status:** aceito (agosto/2026)
+- **Contexto:** até aqui o `web` rodava `runserver` com `DEBUG=True` e a SPA só
+  existia no servidor do Vite. Isso não é um ambiente publicável: o servidor de
+  desenvolvimento do Django não é feito para produção, `DEBUG=True` expõe stack
+  traces e desliga as proteções, e não havia nada servindo os estáticos nem o
+  `index.html` do front.
+- **Decisão:** uma única imagem, construída em dois estágios — `node` compila a
+  SPA, e o estágio Python copia o `dist/` para `/app/spa`, roda `collectstatic`
+  no build e sobe **gunicorn**. O **WhiteNoise** serve os estáticos no próprio
+  processo, e o `index.html` vira template do Django, devolvido por uma rota
+  curinga para o React Router funcionar em recarregamento de página.
+- **Alternativas consideradas:**
+  1. **nginx como serviço separado**, servindo `dist/` e fazendo proxy para o
+     gunicorn. É o arranjo clássico e o mais eficiente para estáticos, mas
+     acrescenta um contêiner, um arquivo de configuração e uma segunda camada
+     onde errar rota. Para o volume deste projeto, o ganho não paga o custo.
+  2. **Servir a SPA fora da aplicação** (Netlify/Vercel apontando para a API).
+     Bom para escala, mas cria CORS e uma origem separada para a sessão do
+     Django — hoje a autenticação é por cookie de sessão.
+- **Consequências:**
+  - `docker compose up` entrega a aplicação completa, front e API na mesma
+    origem: sem CORS, sem uma segunda implantação para coordenar.
+  - As configurações que dependem de HTTPS (redirecionamento, cookies
+    `Secure`, HSTS) ficam atrás de `DJANGO_SECURE_SSL`, desligada por padrão —
+    com ela ligada, `manage.py check --deploy` não acusa nenhum aviso; sem
+    ela, acusa os quatro esperados, e é assim que se roda em `http://localhost`
+    sem laço de redirecionamento.
+  - O `base` do Vite passou a ser `/static/`, que é por onde o WhiteNoise
+    serve. Mudar isso quebra o carregamento dos assets em produção.
+  - Custo: rebuild da imagem a cada mudança de front (não há hot reload nesse
+    modo). O fluxo de desenvolvimento continua sendo `npm run dev` com proxy
+    para o Django.

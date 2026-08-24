@@ -29,7 +29,7 @@ A documentação técnica e de processo fica em [`docs/`](docs/):
 
 | Serviço | Porta | Descrição |
 |---|---|---|
-| `web` | `8000` | Aplicação Django |
+| `web` | `8000` | Aplicação Django (gunicorn) + SPA + estáticos |
 | `db` | `5432` | PostgreSQL 16 |
 | `scheduler` | — | Executa em ciclo `coletar` → `enviar_digest` → `notificar_push` (ADR-008) |
 
@@ -44,8 +44,9 @@ cp .env.example .env
 | Variável | Descrição | Padrão |
 |---|---|---|
 | `DJANGO_SECRET_KEY` | Chave secreta do Django | — (defina um valor único) |
-| `DJANGO_DEBUG` | Ativa modo debug (`True`/`False`) | `True` |
-| `DJANGO_ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula | `*` |
+| `DJANGO_DEBUG` | Ativa modo debug (`True`/`False`) | `False` |
+| `DJANGO_ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula | `localhost,127.0.0.1` |
+| `DJANGO_SECURE_SSL` | Redirecionamento HTTPS, cookies `Secure` e HSTS | `False` |
 | `POSTGRES_DB` | Nome do banco | `ufcanewsletter` |
 | `POSTGRES_USER` | Usuário do banco | `ufcanewsletter` |
 | `POSTGRES_PASSWORD` | Senha do banco | — (defina um valor único) |
@@ -137,6 +138,30 @@ docker compose up -d
     accounts/             # app de autenticação: cadastro, login, perfil
   frontend/               # SPA React (Vite) que consome a API
 ```
+
+## Produção
+
+O `docker compose up` já entrega a aplicação em modo produção: **gunicorn** (3
+workers) no lugar do `runserver`, `DEBUG=False`, e a SPA construída dentro da
+imagem — o estágio `node` do Dockerfile roda `npm run build`, e o **WhiteNoise**
+serve os estáticos no próprio processo. Front e API na mesma origem, em
+`http://localhost:8000`: `/` abre a SPA, e recarregar `/busca` funciona porque
+uma rota curinga devolve o `index.html` (ver ADR-010).
+
+Antes de publicar de verdade:
+
+```bash
+docker compose exec web python manage.py check --deploy
+```
+
+Com `DJANGO_SECURE_SSL=False` (o padrão) ele acusa 4 avisos — todos sobre
+HTTPS, esperados em `http://localhost`. Atrás de TLS, ligue a variável e o
+check passa limpo: redirecionamento HTTPS, cookies `Secure` e HSTS entram
+juntos. Defina também `DJANGO_SECRET_KEY` com um valor único e
+`DJANGO_ALLOWED_HOSTS` com o domínio real.
+
+Mudou o front? A imagem precisa ser reconstruída (`make build`), já que o
+bundle é gerado no build. Para desenvolver, continue usando o servidor do Vite.
 
 ## Frontend
 

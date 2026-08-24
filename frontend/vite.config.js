@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // Em produção a SPA é servida pelo Django/WhiteNoise sob /static/;
+  // o index.html vira template e referencia os assets por esse prefixo.
+  base: '/static/',
   server: {
     proxy: {
       '/accounts': 'http://localhost:8000',

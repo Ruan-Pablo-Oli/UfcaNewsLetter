@@ -23,13 +23,19 @@ services:
       dockerfile: Dockerfile
     image: ufcanewsletter:latest
     container_name: ufcanewsletter-web
-    command: sh -c "python manage.py migrate --noinput && python manage.py seed_interesses && python manage.py seed_fontes_unidades && python manage.py runserver 0.0.0.0:8000"
+    # Migrações e seeds idempotentes na subida; o servidor é o gunicorn definido
+    # no CMD da imagem (ver Dockerfile).
+    command: >
+      sh -c "python manage.py migrate --noinput
+      && python manage.py seed_interesses
+      && python manage.py seed_fontes_unidades
+      && gunicorn ufcanewsletter.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile - --error-logfile -"
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
-      - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-*}
       - POSTGRES_HOST=db
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
