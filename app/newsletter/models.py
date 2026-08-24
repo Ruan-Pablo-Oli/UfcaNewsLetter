@@ -128,7 +128,10 @@ class Fonte(models.Model):
 
     nome = models.CharField(max_length=150)
     tipo = models.CharField(max_length=20, choices=Tipo.choices)
-    url = models.URLField()
+    # O padrão do URLField é 200, curto demais para URLs reais da UFCA (ver a
+    # nota em Conteudo.url); PushSubscription.endpoint já usava 500 pelo mesmo
+    # motivo.
+    url = models.URLField(max_length=500)
     intervalo_coleta = models.PositiveIntegerField(
         help_text="Intervalo entre coletas, em minutos.",
     )
@@ -164,6 +167,11 @@ class Conteudo(models.Model):
     corpo = models.TextField()
     resumo = models.TextField(blank=True)
     url = models.URLField(
+        # O padrão do URLField é max_length=200, e os slugs de informe da UFCA
+        # passam disso (171 caracteres numa amostra de uma única página). Com
+        # 200, gravar o conteúdo estourava StringDataRightTruncation e derrubava
+        # a coleta da fonte inteira.
+        max_length=500,
         blank=True,
         default="",
         help_text="Link do conteúdo original na fonte (ex.: página do edital).",

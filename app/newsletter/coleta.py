@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.utils import timezone
 from django.utils.timezone import is_naive, make_aware
 
@@ -164,8 +164,17 @@ def coletar_fonte(
     for registro in registros:
         anexos, erros_anexo = _processar_anexos(registro, processor)
         erros.extend(erros_anexo)
-        if _persistir(registro, fonte, anexos=anexos):
-            criados += 1
+        try:
+            if _persistir(registro, fonte, anexos=anexos):
+                criados += 1
+        except DatabaseError as exc:
+            # Mesmo contrato dos erros de extração (US-03.1.1): o registro
+            # problemático vira um CollectionError com URL e motivo, e os
+            # demais seguem. Antes, um único registro inválido abortava a
+            # coleta da fonte inteira — e, no agendador, o ciclo todo.
+            erros.append(
+                CollectionError(url=registro.canonical_url, reason=f"persistência: {exc}")
+            )
 
     return ResultadoColeta(
         fonte=fonte,

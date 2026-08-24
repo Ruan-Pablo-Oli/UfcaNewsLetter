@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from django.core.management import call_command
+from django.db import DatabaseError
 from django.utils import timezone
 
 from newsletter.coleta import coletar_fonte, fontes_devidas
@@ -100,6 +101,47 @@ def test_coletar_aprova_o_que_o_classificador_categoriza(fonte_html):
     assert conteudo.categoria is not None
     assert conteudo.categoria.nome == "edital"
     assert conteudo.status == Conteudo.Status.APROVADO
+
+
+@pytest.mark.django_db
+def test_persiste_url_maior_que_o_padrao_do_urlfield(fonte_html):
+    """URLField nasce com max_length=200, curto para os slugs de informe da UFCA."""
+    # A URL gravada vem do <link rel="canonical"> do post, então o slug longo
+    # precisa entrar nas duas páginas.
+    slug = "a" * 230
+    pages = {
+        "https://www.ufca.edu.br/noticias/": fixture("noticias-listing.html").replace(
+            "/noticias/primeira/", f"/noticias/{slug}/"
+        ),
+        f"https://www.ufca.edu.br/noticias/{slug}/": fixture("noticias-post.html").replace(
+            "/noticias/primeira/", f"/noticias/{slug}/"
+        ),
+    }
+    resultado = coletar_fonte(fonte_html, fetch_html=pages.__getitem__)
+
+    assert resultado.criados == 1
+    conteudo = Conteudo.objects.get(titulo="Primeira notícia")
+    assert len(conteudo.url) > 200
+    assert conteudo.url.endswith(f"/{slug}/")
+
+
+@pytest.mark.django_db
+def test_registro_que_falha_ao_gravar_nao_derruba_a_fonte(fonte_html):
+    """Erro de banco num registro vira CollectionError; os demais seguem."""
+    pages = {
+        "https://www.ufca.edu.br/noticias/": fixture("noticias-listing.html"),
+        "https://www.ufca.edu.br/noticias/primeira/": fixture("noticias-post.html"),
+    }
+    with patch("newsletter.coleta._persistir", side_effect=DatabaseError("coluna curta")):
+        resultado = coletar_fonte(fonte_html, fetch_html=pages.__getitem__)
+
+    assert resultado.ok
+    assert resultado.criados == 0
+    # A fixture já produz outros erros (paginação, anexo): o que importa é que o
+    # erro de gravação foi registrado em vez de abortar a coleta.
+    de_persistencia = [e for e in resultado.erros if "persistência" in e.reason]
+    assert len(de_persistencia) == 1
+    assert de_persistencia[0].url.endswith("/noticias/primeira/")
 
 
 @pytest.mark.django_db
