@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 db.sqlite3
 .env
+
+# Diagramas de trabalho, mantidos apenas localmente.
+docs/diagramas.md
