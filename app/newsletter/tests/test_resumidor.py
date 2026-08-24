@@ -239,3 +239,38 @@ def test_exibicao_prefere_o_resumo_quando_existe(fonte):
     )
 
     assert resumo_para_exibicao(conteudo) == "Resumo curado."
+
+
+# --- extração de prazo: formulações reais dos editais ----------------------
+
+
+@pytest.mark.parametrize(
+    "texto,esperado",
+    [
+        ("As inscrições vão até 30/09/2026.", (2026, 9, 30)),
+        ("Inscrições até o dia 15/10/2026.", (2026, 10, 15)),
+        ("Submissões até as 23h59 do dia 05/11/2026.", (2026, 11, 5)),
+        ("Prazo final: 20/12/2026", (2026, 12, 20)),
+        ("As inscrições ocorrem no período de 01/09/2026 a 30/09/2026.", (2026, 9, 30)),
+        ("Estarão abertas do dia 10/03/2026 até o dia 25/03/2026.", (2026, 3, 25)),
+        ("Entre os dias 02/05/2026 a 09/05/2026 haverá recurso.", (2026, 5, 9)),
+    ],
+)
+def test_extrair_prazo_reconhece_formulacoes_de_edital(texto, esperado):
+    prazo = extrair_prazo(texto)
+
+    assert prazo is not None
+    assert (prazo.year, prazo.month, prazo.day) == esperado
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        # A expressão mais comum do corpus, e não é prazo nenhum.
+        "Publicado em 01/08/2026 · atualizado em 12/08/2026",
+        "Documento emitido em 03/07/2026 pela coordenação.",
+        "As aulas começam a partir de 01/03/2026.",
+    ],
+)
+def test_extrair_prazo_ignora_data_que_nao_e_limite(texto):
+    assert extrair_prazo(texto) is None

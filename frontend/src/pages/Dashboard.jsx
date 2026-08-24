@@ -4,6 +4,37 @@ import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api'
 import { ReasonTooltip } from '../components/ReasonTooltip'
 
+const UM_DIA = 24 * 60 * 60 * 1000
+
+/** Prazo com urgência relativa: o que importa ao estudante é "faltam 3 dias". */
+function PrazoBadge({ prazo }) {
+  const data = new Date(prazo)
+  if (Number.isNaN(data.getTime())) return null
+
+  const hoje = new Date()
+  const dias = Math.ceil((data - hoje) / UM_DIA)
+  const formatada = data.toLocaleDateString('pt-BR')
+
+  let urgencia = 'normal'
+  let texto = `Prazo: ${formatada}`
+  if (dias < 0) {
+    urgencia = 'encerrado'
+    texto = `Prazo encerrado em ${formatada}`
+  } else if (dias === 0) {
+    urgencia = 'hoje'
+    texto = `Prazo termina hoje (${formatada})`
+  } else if (dias <= 7) {
+    urgencia = 'proximo'
+    texto = `Faltam ${dias} dia${dias > 1 ? 's' : ''} — até ${formatada}`
+  }
+
+  return (
+    <span className={`feed-prazo feed-prazo-${urgencia}`}>
+      ⏳ {texto}
+    </span>
+  )
+}
+
 export function Dashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -214,7 +245,19 @@ export function Dashboard() {
                     </span>
                   </div>
                   <h3 className="feed-title">{item.titulo}</h3>
+                  {item.prazo && <PrazoBadge prazo={item.prazo} />}
                   {item.resumo && <p className="feed-summary">{item.resumo}</p>}
+                  {item.url && (
+                    <a
+                      className="feed-link"
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Abrir no site da UFCA ↗
+                    </a>
+                  )}
                   <ReasonTooltip motivo={item.motivo} />
                   <div className="feed-actions" onClick={(e) => e.stopPropagation()}>
                     <button
@@ -260,7 +303,18 @@ export function Dashboard() {
             <p className="modal-meta">
               {modalItem.fonte} · {new Date(modalItem.data_publicacao).toLocaleDateString('pt-BR')}
             </p>
+            {modalItem.prazo && <PrazoBadge prazo={modalItem.prazo} />}
             {modalItem.resumo && <p className="modal-body">{modalItem.resumo}</p>}
+            {modalItem.url && (
+              <a
+                className="modal-link"
+                href={modalItem.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Abrir no site da UFCA ↗
+              </a>
+            )}
             {modalItem.motivo && <p className="modal-reason">{modalItem.motivo}</p>}
           </div>
         </div>

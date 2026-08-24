@@ -23,6 +23,8 @@ function conteudo(id, extra = {}) {
     fonte: 'Portal UFCA',
     data_publicacao: '2026-07-20T12:00:00Z',
     universal: false,
+    url: `https://www.ufca.edu.br/informes/conteudo-${id}/`,
+    prazo: null,
     motivo: 'Você segue o interesse Editais',
     ...extra,
   }
@@ -184,5 +186,55 @@ describe('Dashboard — feedback de relevância', () => {
     expect(
       screen.getByRole('button', { name: 'Marcar "Conteúdo 7" como útil' })
     ).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('Dashboard — card acionável', () => {
+  it('mostra o link para o conteúdo original na fonte', async () => {
+    api.get.mockResolvedValue(pagina([conteudo(1)]))
+
+    renderDashboard()
+
+    const link = await screen.findByRole('link', { name: /Abrir no site da UFCA/ })
+    expect(link).toHaveAttribute('href', 'https://www.ufca.edu.br/informes/conteudo-1/')
+    expect(link).toHaveAttribute('target', '_blank')
+    // Sem isso a aba aberta teria acesso a window.opener.
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+  })
+
+  it('não renderiza link quando o conteúdo não tem url', async () => {
+    api.get.mockResolvedValue(pagina([conteudo(1, { url: '' })]))
+
+    renderDashboard()
+
+    await screen.findByText('Conteúdo 1')
+    expect(screen.queryByRole('link', { name: /Abrir no site da UFCA/ })).toBeNull()
+  })
+
+  it('destaca prazo próximo com a contagem de dias', async () => {
+    const emTresDias = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+    api.get.mockResolvedValue(pagina([conteudo(1, { prazo: emTresDias })]))
+
+    renderDashboard()
+
+    expect(await screen.findByText(/Faltam 3 dias/)).toBeInTheDocument()
+  })
+
+  it('marca prazo já vencido como encerrado', async () => {
+    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    api.get.mockResolvedValue(pagina([conteudo(1, { prazo: ontem })]))
+
+    renderDashboard()
+
+    expect(await screen.findByText(/Prazo encerrado/)).toBeInTheDocument()
+  })
+
+  it('não mostra badge de prazo quando não há prazo', async () => {
+    api.get.mockResolvedValue(pagina([conteudo(1)]))
+
+    renderDashboard()
+
+    await screen.findByText('Conteúdo 1')
+    expect(screen.queryByText(/Prazo/)).toBeNull()
   })
 })
