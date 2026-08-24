@@ -10,8 +10,12 @@ Liga cada **User Story / tarefa técnica → issue → PR → status**, por spri
 **Legenda:** ✅ concluído · 🔜 próximo · ⏳ a fazer · Prioridade = MoSCoW · Est. = estimativa (Fibonacci)
 
 > **Estado geral (24/08/2026):** as três milestones (M1, M2, M3) estão com
-> **0 issues abertas** e todo o trabalho correspondente está mergeado na `main`
-> (até o PR #78).
+> **0 issues abertas**, não há issue nem PR aberto, e todo o trabalho está
+> mergeado na `main` (até o PR #88). Depois de fechar as user stories, uma
+> segunda leva de PRs (#80–#88) pôs o sistema para funcionar de ponta a ponta
+> com dados reais — está na seção [Endurecimento e
+> operação](#endurecimento-e-operação-pós-m3), que também registra os defeitos
+> encontrados ao rodar o pipeline de verdade.
 
 ## M1 — Base de dados e personalização (venc. 25/07) — ✅ concluída
 
@@ -86,6 +90,30 @@ Liga cada **User Story / tarefa técnica → issue → PR → status**, por spri
 | #28 | US-07.1 | Buscar conteúdos | should | 5 | #63 (via #64) | ✅ |
 | #29 | US-07.2 | Acessar histórico de conteúdos | should | 3 | #63 (via #64) | ✅ |
 
+## Endurecimento e operação (pós-M3)
+
+As user stories fechadas não bastavam para o sistema funcionar sozinho com
+conteúdo real. Estes PRs não abriram issues novas — cada um corrige ou completa
+uma US já entregue, e todos foram verificados executando o pipeline contra os
+portais da UFCA, não só em teste.
+
+| PR | O que resolveu | US/issue | ADR |
+|---|---|---|---|
+| #80 | Host do repositório de PDFs estava grafado em inglês (`documents`), que não resolve em DNS — o `PDFProcessor` **nunca** processou um anexo | US-03.1.2 (#54) | — |
+| #81 | Conteúdo classificado passa a ser **aprovado automaticamente**; sem revisor de plantão o feed não recebia nada | US-05.2 (#27), US-03.2 (#17) | ADR-009 |
+| #82 | **Agendador** das tarefas periódicas (serviço `scheduler`) e configuração de e-mail — antes nada disparava coleta, digest ou push | US-04.1 (#24), US-04.3 (#22), US-03.1 (#16) | ADR-008 (proposta → aceito) |
+| #83 | `URLField` com o padrão de 200 caracteres estourava nas URLs reais da UFCA e **abortava a coleta da fonte inteira** | US-03.1 (#16), #52 | — |
+| #84 | **Modo produção**: gunicorn, WhiteNoise, SPA servida pela aplicação, headers de segurança | — | ADR-010 |
+| #85 | Conteúdo coletado não era direcionado a ninguém: 0 universais, 0 interesses — o perfil sem curso via **zero** notícias | US-01.2 (#14), US-03.2 (#17) | ADR-011 |
+| #86 | Resumidor estava órfão (nenhum caminho o chamava) e só olhava o corpo; passa a ler o texto dos PDFs anexados | US-03.3 (#18) | ADR-012 |
+| #87 | Feed não devolvia `url` nem `prazo` — o estudante não conseguia abrir o edital nem sabia até quando se inscrever | US-01.2 (#14), US-03.3 (#18) | — |
+| #88 | **Tela de moderação** da fila de revisão; a #27 tinha entregue só a API JSON | US-05.2 (#27) | — |
+
+**Padrão que se repetiu:** três módulos foram entregues com testes verdes e
+**nunca chamados por nenhum caminho de execução** — o `PDFProcessor` (#80/#67),
+o direcionamento do conteúdo (#85) e o resumidor (#86). Testes de unidade não
+pegam integração ausente; foi rodar a coleta real que expôs os três.
+
 ## Épicos
 
 | Issue | Épico | Status |
@@ -108,6 +136,7 @@ Liga cada **User Story / tarefa técnica → issue → PR → status**, por spri
 | PR #51 | Comando `seed_conteudos` (`make seed-demo`) e CI do frontend | ✅ |
 | PR #64 | Integração de `develop` na `main` (#16, #17, #28, #29, #54) | ✅ |
 | PR #76 | Liberar `npm` ao agente para validar o frontend | ✅ |
+| PR #79 | Atualização desta matriz até o PR #78 | ✅ |
 
 ## Pesquisa e requisitos (Sprint 1)
 
@@ -127,4 +156,4 @@ gh api "repos/Ruan-Pablo-Oli/UfcaNewsLetter/milestones?state=all"
 
 ---
 
-_Última atualização: 24/08/2026 — cruzada com as issues, PRs e milestones do GitHub. Todas as issues de M1–M3 fechadas e mergeadas na `main` até o PR #78. Atualizar a cada merge relevante ou fechamento de sprint._
+_Última atualização: 24/08/2026 (após o PR #88) — cruzada com as issues, PRs e milestones do GitHub. Nenhuma issue ou PR aberto; M1–M3 fechadas e mergeadas na `main`. As decisões técnicas dos PRs #80–#88 estão nas ADR-008 a ADR-012 em [decisoes.md](decisoes.md). Atualizar a cada merge relevante ou fechamento de sprint._
