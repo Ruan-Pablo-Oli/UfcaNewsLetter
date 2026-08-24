@@ -14,7 +14,7 @@ de revisão manual do admin (US-05.2, issue #27).
 """
 from django.core.management.base import BaseCommand
 
-from newsletter.classificador import classificar_pendentes
+from newsletter.classificador import classificar_pendentes, direcionar_conteudo
 from newsletter.models import Categoria, Conteudo
 
 
@@ -31,12 +31,24 @@ class Command(BaseCommand):
             ),
         )
         parser.add_argument(
+            "--redirecionar",
+            action="store_true",
+            help=(
+                "Reaplica o direcionamento (curso, interesses, universal) a TODO o "
+                "conteúdo, inclusive o já classificado. Use para o backfill de "
+                "conteúdo coletado antes das regras de direcionamento existirem."
+            ),
+        )
+        parser.add_argument(
             "--relatorio",
             action="store_true",
             help="Após classificar, imprime métricas de cobertura por categoria e fila de revisão.",
         )
 
     def handle(self, *args, **options):
+        if options["redirecionar"]:
+            self._redirecionar()
+
         alvo = Conteudo.objects.filter(categoria__isnull=True)
         total = alvo.count()
 
@@ -56,6 +68,20 @@ class Command(BaseCommand):
 
         if options["relatorio"]:
             self._relatorio()
+
+    def _redirecionar(self):
+        """Backfill: aplica direcionar_conteudo ao conteúdo já classificado."""
+        alterados = 0
+        total = 0
+        for conteudo in Conteudo.objects.all().iterator():
+            total += 1
+            if direcionar_conteudo(conteudo):
+                alterados += 1
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Direcionamento reaplicado: {alterados} de {total} conteúdo(s) alterado(s)."
+            )
+        )
 
     def _relatorio(self):
         self.stdout.write("--- Relatório de classificação ---")

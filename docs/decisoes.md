@@ -196,3 +196,46 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
     revertida por um processo automático.
   - Se a precisão se mostrar insuficiente, o passo natural é a alternativa 2
     (flag por fonte) sobre esta política, não o retorno à revisão obrigatória.
+
+
+## ADR-011 — Direcionamento do conteúdo coletado (universal por padrão + interesses por regra)
+
+- **Status:** aceito (agosto/2026)
+- **Contexto:** o feed (`feed_queryset_for_perfil`) mostra um conteúdo se ele
+  for `universal`, **ou** se o curso do perfil estiver em `Conteudo.cursos`,
+  **ou** se houver interesse em comum. O coletor não preenchia nenhuma das
+  três coisas, e o classificador só preenchia `cursos` quando o texto citava um
+  curso. Na primeira coleta real de verdade isso ficou evidente: dos 224
+  conteúdos coletados, **0 eram universais e 0 tinham interesse**; o perfil sem
+  curso/interesses via **zero** conteúdo real, e um perfil completo via 10. O
+  pipeline funcionava de ponta a ponta e mesmo assim o estudante não recebia
+  quase nada — o elo que faltava era o direcionamento.
+- **Decisão:** `direcionar_conteudo` (em `classificador.py`) decide para quem o
+  conteúdo aparece:
+  - cita curso(s) conhecido(s) → vai só para esses cursos;
+  - não cita nenhum → **`universal=True`**, como um mural institucional: aviso
+    da UFCA é para toda a comunidade até prova em contrário;
+  - interesses mencionados são amarrados em qualquer caso, por regras de
+    palavra-chave no mesmo formato das de curso (`REGRA_INTERESSES`).
+  Nada é sobrescrito: direcionamento manual ou de seed tem precedência.
+- **Alternativas consideradas:**
+  1. **Só casar interesses**, sem universal por padrão. Mais fiel à ideia de
+     personalização, mas quem não marcou interesses continua com feed vazio — e
+     o perfil recém-criado é exatamente esse caso.
+  2. **Só ajustar os perfis de teste** (preencher curso e interesses). Resolve a
+     demonstração e não resolve o produto: qualquer usuário novo voltaria ao
+     feed vazio.
+- **Consequências:**
+  - Medido na base real (224 conteúdos): universais passaram de 0 para 159 e
+    conteúdos com interesse de 0 para 175; o perfil sem curso nem interesses
+    passou de **0 para 129** conteúdos reais no feed.
+  - O peso da personalização se desloca: com a maioria universal, o que
+    diferencia os feeds é sobretudo a **ordenação por relevância** (feedback do
+    estudante, US-01.3) e os motivos de recomendação, não mais o filtro de
+    visibilidade.
+  - Se no futuro o volume tornar o feed genérico demais, o ajuste natural é
+    restringir o universal por categoria (ex.: só `comunicado` e `prazo`), sem
+    voltar ao estado em que o conteúdo coletado não alcança ninguém.
+  - `classificar --redirecionar` reaplica o direcionamento ao conteúdo já
+    classificado (backfill), já que `classificar_conteudo` pula o que já tem
+    categoria.
