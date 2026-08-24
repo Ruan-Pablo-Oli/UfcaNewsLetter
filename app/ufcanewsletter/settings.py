@@ -4,6 +4,10 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Build da SPA (frontend/dist), copiado para cá pela imagem de produção.
+# Em desenvolvimento o diretório não existe: o front roda no servidor do Vite.
+SPA_DIR = BASE_DIR / "spa"
+
 
 def _env_bool(name, default=False):
     return os.environ.get(name, str(default)).strip().lower() in ("1", "true", "yes", "on")
@@ -39,6 +43,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serve os estáticos (inclusive os da SPA) sem depender de nginx; precisa
+    # vir logo depois do SecurityMiddleware.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -52,7 +59,9 @@ ROOT_URLCONF = "ufcanewsletter.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # index.html da SPA é renderizado como template, para o Django poder
+        # devolvê-lo em qualquer rota do React Router.
+        "DIRS": [SPA_DIR] if SPA_DIR.is_dir() else [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -94,12 +103,21 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [SPA_DIR] if SPA_DIR.is_dir() else []
+
+# Sem manifest: o Vite já versiona os arquivos por hash no nome, então basta a
+# compressão do WhiteNoise.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
-LOGOUT_REDIRECT_URL = "hello"
+LOGOUT_REDIRECT_URL = "spa"
 
 # Web Push (VAPID) — notificações push (issue #22, ver .env.example)
 # E-mail (digest da US-04.1). O padrão é o backend de console: em
@@ -121,3 +139,25 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 WEBPUSH_VAPID_PUBLIC_KEY = os.environ.get("WEBPUSH_VAPID_PUBLIC_KEY", "")
 WEBPUSH_VAPID_PRIVATE_KEY = os.environ.get("WEBPUSH_VAPID_PRIVATE_KEY", "")
 WEBPUSH_VAPID_SUBJECT = os.environ.get("WEBPUSH_VAPID_SUBJECT", "mailto:contato@ufca.edu.br")
+
+
+# Segurança para produção. Ligadas só fora do DEBUG, e as que dependem de HTTPS
+# ficam atrás de DJANGO_SECURE_SSL — assim dá para rodar o modo produção em
+# http://localhost sem entrar em laço de redirecionamento.
+SECURE_SSL = _env_bool("DJANGO_SECURE_SSL", False)
+
+if not DEBUG:
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+    X_FRAME_OPTIONS = "DENY"
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SAMESITE = "Lax"
+
+    SECURE_SSL_REDIRECT = SECURE_SSL
+    SESSION_COOKIE_SECURE = SECURE_SSL
+    CSRF_COOKIE_SECURE = SECURE_SSL
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if SECURE_SSL else None
+    SECURE_HSTS_SECONDS = 31536000 if SECURE_SSL else 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_SSL
+    SECURE_HSTS_PRELOAD = SECURE_SSL

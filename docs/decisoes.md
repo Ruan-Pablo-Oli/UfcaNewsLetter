@@ -198,44 +198,37 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
     (flag por fonte) sobre esta política, não o retorno à revisão obrigatória.
 
 
-## ADR-011 — Direcionamento do conteúdo coletado (universal por padrão + interesses por regra)
+## ADR-010 — Produção: gunicorn + WhiteNoise servindo a SPA na mesma imagem
 
 - **Status:** aceito (agosto/2026)
-- **Contexto:** o feed (`feed_queryset_for_perfil`) mostra um conteúdo se ele
-  for `universal`, **ou** se o curso do perfil estiver em `Conteudo.cursos`,
-  **ou** se houver interesse em comum. O coletor não preenchia nenhuma das
-  três coisas, e o classificador só preenchia `cursos` quando o texto citava um
-  curso. Na primeira coleta real de verdade isso ficou evidente: dos 224
-  conteúdos coletados, **0 eram universais e 0 tinham interesse**; o perfil sem
-  curso/interesses via **zero** conteúdo real, e um perfil completo via 10. O
-  pipeline funcionava de ponta a ponta e mesmo assim o estudante não recebia
-  quase nada — o elo que faltava era o direcionamento.
-- **Decisão:** `direcionar_conteudo` (em `classificador.py`) decide para quem o
-  conteúdo aparece:
-  - cita curso(s) conhecido(s) → vai só para esses cursos;
-  - não cita nenhum → **`universal=True`**, como um mural institucional: aviso
-    da UFCA é para toda a comunidade até prova em contrário;
-  - interesses mencionados são amarrados em qualquer caso, por regras de
-    palavra-chave no mesmo formato das de curso (`REGRA_INTERESSES`).
-  Nada é sobrescrito: direcionamento manual ou de seed tem precedência.
+- **Contexto:** até aqui o `web` rodava `runserver` com `DEBUG=True` e a SPA só
+  existia no servidor do Vite. Isso não é um ambiente publicável: o servidor de
+  desenvolvimento do Django não é feito para produção, `DEBUG=True` expõe stack
+  traces e desliga as proteções, e não havia nada servindo os estáticos nem o
+  `index.html` do front.
+- **Decisão:** uma única imagem, construída em dois estágios — `node` compila a
+  SPA, e o estágio Python copia o `dist/` para `/app/spa`, roda `collectstatic`
+  no build e sobe **gunicorn**. O **WhiteNoise** serve os estáticos no próprio
+  processo, e o `index.html` vira template do Django, devolvido por uma rota
+  curinga para o React Router funcionar em recarregamento de página.
 - **Alternativas consideradas:**
-  1. **Só casar interesses**, sem universal por padrão. Mais fiel à ideia de
-     personalização, mas quem não marcou interesses continua com feed vazio — e
-     o perfil recém-criado é exatamente esse caso.
-  2. **Só ajustar os perfis de teste** (preencher curso e interesses). Resolve a
-     demonstração e não resolve o produto: qualquer usuário novo voltaria ao
-     feed vazio.
+  1. **nginx como serviço separado**, servindo `dist/` e fazendo proxy para o
+     gunicorn. É o arranjo clássico e o mais eficiente para estáticos, mas
+     acrescenta um contêiner, um arquivo de configuração e uma segunda camada
+     onde errar rota. Para o volume deste projeto, o ganho não paga o custo.
+  2. **Servir a SPA fora da aplicação** (Netlify/Vercel apontando para a API).
+     Bom para escala, mas cria CORS e uma origem separada para a sessão do
+     Django — hoje a autenticação é por cookie de sessão.
 - **Consequências:**
-  - Medido na base real (224 conteúdos): universais passaram de 0 para 159 e
-    conteúdos com interesse de 0 para 175; o perfil sem curso nem interesses
-    passou de **0 para 129** conteúdos reais no feed.
-  - O peso da personalização se desloca: com a maioria universal, o que
-    diferencia os feeds é sobretudo a **ordenação por relevância** (feedback do
-    estudante, US-01.3) e os motivos de recomendação, não mais o filtro de
-    visibilidade.
-  - Se no futuro o volume tornar o feed genérico demais, o ajuste natural é
-    restringir o universal por categoria (ex.: só `comunicado` e `prazo`), sem
-    voltar ao estado em que o conteúdo coletado não alcança ninguém.
-  - `classificar --redirecionar` reaplica o direcionamento ao conteúdo já
-    classificado (backfill), já que `classificar_conteudo` pula o que já tem
-    categoria.
+  - `docker compose up` entrega a aplicação completa, front e API na mesma
+    origem: sem CORS, sem uma segunda implantação para coordenar.
+  - As configurações que dependem de HTTPS (redirecionamento, cookies
+    `Secure`, HSTS) ficam atrás de `DJANGO_SECURE_SSL`, desligada por padrão —
+    com ela ligada, `manage.py check --deploy` não acusa nenhum aviso; sem
+    ela, acusa os quatro esperados, e é assim que se roda em `http://localhost`
+    sem laço de redirecionamento.
+  - O `base` do Vite passou a ser `/static/`, que é por onde o WhiteNoise
+    serve. Mudar isso quebra o carregamento dos assets em produção.
+  - Custo: rebuild da imagem a cada mudança de front (não há hot reload nesse
+    modo). O fluxo de desenvolvimento continua sendo `npm run dev` com proxy
+    para o Django.
