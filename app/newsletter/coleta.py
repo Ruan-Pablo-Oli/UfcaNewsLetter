@@ -28,6 +28,7 @@ from .collectors import (
 )
 from .collectors.pdf_newsletter import PDFProcessor
 from .models import Conteudo, Fonte
+from .resumidor import resumir_conteudo
 
 # Mapeia ``Fonte.tipo`` para a classe de adaptador responsável por extrair
 # registros desse tipo de origem. Tipos sem coletor implementado (ainda: PDF e
@@ -128,6 +129,9 @@ def _persistir(record, fonte: Fonte, *, anexos: list[dict] | None = None) -> boo
     )
     if criado:
         classificar_conteudo(conteudo)
+        # Resumo na mesma passada: o conteúdo extenso costuma estar no PDF
+        # anexado, que já foi processado acima (ADR-012).
+        resumir_conteudo(conteudo)
     return criado
 
 

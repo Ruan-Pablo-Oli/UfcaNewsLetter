@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from .busca import buscar_conteudos
 from .feed import feed_queryset_for_perfil, motivo_recomendacao
 from .models import Conteudo, Entrega, Feedback, Perfil
+from .resumidor import resumo_para_exibicao
 
 FEED_PAGE_SIZE_PADRAO = 20
 FEED_PAGE_SIZE_MAXIMO = 50
@@ -41,7 +42,7 @@ def feed(request):
         {
             "id": conteudo.id,
             "titulo": conteudo.titulo,
-            "resumo": conteudo.resumo,
+            "resumo": resumo_para_exibicao(conteudo),
             "categoria": conteudo.categoria.nome if conteudo.categoria else None,
             "fonte": conteudo.fonte.nome,
             "data_publicacao": conteudo.data_publicacao.isoformat(),
@@ -169,7 +170,7 @@ def busca(request):
         {
             "id": conteudo.id,
             "titulo": conteudo.titulo,
-            "resumo": conteudo.resumo,
+            "resumo": resumo_para_exibicao(conteudo),
             "categoria": conteudo.categoria.nome if conteudo.categoria else None,
             "fonte": conteudo.fonte.nome,
             "data_publicacao": conteudo.data_publicacao.isoformat(),
@@ -223,7 +224,7 @@ def historico(request):
             "id": entrega.id,
             "conteudo_id": entrega.conteudo_id,
             "titulo": entrega.conteudo.titulo,
-            "resumo": entrega.conteudo.resumo,
+            "resumo": resumo_para_exibicao(entrega.conteudo),
             "categoria": (
                 entrega.conteudo.categoria.nome if entrega.conteudo.categoria else None
             ),
