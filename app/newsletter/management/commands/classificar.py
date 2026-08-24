@@ -14,7 +14,11 @@ de revisão manual do admin (US-05.2, issue #27).
 """
 from django.core.management.base import BaseCommand
 
-from newsletter.classificador import classificar_pendentes, direcionar_conteudo
+from newsletter.classificador import (
+    classificar_pendentes,
+    classificar_texto,
+    direcionar_conteudo,
+)
 from newsletter.models import Categoria, Conteudo
 
 
@@ -40,12 +44,24 @@ class Command(BaseCommand):
             ),
         )
         parser.add_argument(
+            "--recategorizar",
+            action="store_true",
+            help=(
+                "Reaplica as regras de categoria a TODO o conteúdo, sobrescrevendo a "
+                "categoria atual — inclusive correções feitas à mão por um revisor. "
+                "Use depois de mudar as regras."
+            ),
+        )
+        parser.add_argument(
             "--relatorio",
             action="store_true",
             help="Após classificar, imprime métricas de cobertura por categoria e fila de revisão.",
         )
 
     def handle(self, *args, **options):
+        if options["recategorizar"]:
+            self._recategorizar()
+
         if options["redirecionar"]:
             self._redirecionar()
 
@@ -68,6 +84,30 @@ class Command(BaseCommand):
 
         if options["relatorio"]:
             self._relatorio()
+
+    def _recategorizar(self):
+        """Reaplica as regras de categoria ao conteúdo já classificado."""
+        from newsletter.models import Categoria
+
+        alterados = 0
+        total = 0
+        for conteudo in Conteudo.objects.all().iterator():
+            total += 1
+            tipo, _ = classificar_texto(conteudo.titulo, conteudo.corpo)
+            if tipo is None:
+                continue
+            atual = conteudo.categoria.nome if conteudo.categoria else None
+            if atual == tipo:
+                continue
+            categoria, _c = Categoria.objects.get_or_create(nome=tipo)
+            conteudo.categoria = categoria
+            conteudo.save(update_fields=["categoria"])
+            alterados += 1
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Recategorização: {alterados} de {total} conteúdo(s) mudaram de categoria."
+            )
+        )
 
     def _redirecionar(self):
         """Backfill: aplica direcionar_conteudo ao conteúdo já classificado."""

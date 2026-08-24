@@ -28,8 +28,13 @@ REGRA_CATEGORIAS: list[tuple[str, list[str]]] = [
             r"processo\s+seletivo",
             r"chamada\s+p[úu]blica",
             r"\bchamada\b",
-            r"\bsele[çc][ãa]o\s+de\s+(professor|monitor|estagi|bolsista|discente)",
+            r"\bsele[çc][ãa]o\s+de\s+(professor|monitor|estagi|bolsista|discente|tutor)",
             r"\bsele[çc][ãa]o\s+aberta",
+            r"\baberta\s+sele[çc][ãa]o",
+            r"\bseleciona\s+(voluntari|bolsist|estagi|monitor|tutor|discente)",
+            r"\babre\s+sele[çc][ãa]o",
+            r"\bsele[çc][ãa]o\s+para\s+(nova\s+turma|vagas?)",
+            r"\bcredenciamento\b",
             r"\bmonitoria",
             r"\bbolsas?\b",
             r"\bvagas?\s+para\s+est[áa]gio",
@@ -40,6 +45,10 @@ REGRA_CATEGORIAS: list[tuple[str, list[str]]] = [
         [
             r"\bprazo\b",
             r"data\s+limite",
+            r"[úu]ltimo\s+dia",
+            r"dev(e|em)\s+ser\s+(enviad|entregue|apresentad)",
+            r"\bcomprova[çc][ãa]o\s+de",
+            r"inscri[çc][õo]es?\s+(encerram|terminam)",
             r"at[eé]\s+o\s+dia",
             r"at[eé]\s+\d{1,2}\s+de",
             r"entre\s+os\s+dias",
@@ -52,7 +61,27 @@ REGRA_CATEGORIAS: list[tuple[str, list[str]]] = [
     (
         "evento",
         [
-            r"\bsemana\b",
+            # "semana" sozinho casaria com "durante a semana"; exige o nome do
+            # evento em seguida ("Semana de Enfermagem", "Semana Universitária").
+            r"\bsemana\s+(d[aeo]\s|universit|acad[êe]mica|nacional)",
+            r"\bf[óo]rum\b",
+            r"\bwebn?[íi]?n?[áa]rio",
+            r"\bwebinar\b",
+            r"\boficina",
+            r"\bminicurso",
+            r"\bcol[óo]quio",
+            # O hífen evita "sexta-feira"/"segunda-feira", que apareciam em
+            # qualquer aviso com data e faziam editais virarem evento.
+            r"(?<!-)\bfeira\s+d[eo]\b",
+            r"\bjornada\s+(acad[êe]mica|cient[íi]fica|universit[áa]ria)",
+            r"\bsarau\b",
+            r"\bfestival\b",
+            r"\barrai[áa]\b",
+            r"aula\s+inaugural",
+            r"roda\s+de\s+conversa",
+            r"\bconvite\s+para",
+            r"\bcaf[ée]\s+conecta",
+            r"\blan[çc]amento\s+d[eo]",
             r"\bsimp[óo]sio",
             r"\bhackathon",
             r"\bmutir[ãa]o",
@@ -76,6 +105,16 @@ REGRA_CATEGORIAS: list[tuple[str, list[str]]] = [
         [
             r"\bcomunicado",
             r"\baviso\b",
+            r"\bfuncionamento\b",
+            r"\bfunciona(r[áa])?\s+(at[ée]|em|das)",
+            r"hor[áa]rio\s+de\s+atendimento",
+            r"amplia\s+(o\s+)?hor[áa]rio",
+            r"\breajuste\b",
+            r"\btarifa\b",
+            r"\binforma\s+(que|mudan|altera)",
+            r"\bsuspens[ãa]o\s+d[eo]",
+            r"n[ãa]o\s+haver[áa]\s+expediente",
+            r"\bmanuten[çc][ãa]o\b",
             r"\bnota\s+oficial",
             r"\binforme\b",
             r"\bcard[áa]pio",
@@ -180,13 +219,42 @@ def _normalizar(texto: str) -> str:
     return texto.lower()
 
 
-def _categorias(texto_normalizado: str) -> list[str]:
-    """Retorna as categorias cujas regras casam no texto, na ordem de prioridade."""
-    encontradas = []
+# O título anuncia a natureza do conteúdo ("Semana de…", "Edital nº…"); o corpo
+# quase sempre menciona prazos e inscrições de passagem. Medido no corpus real,
+# 48% dos conteúdos casam com mais de uma categoria — decidir pela primeira
+# regra da lista fazia um congresso com data de inscrição virar "prazo".
+def _pontuar(texto_normalizado: str) -> dict[str, int]:
+    """Quantas regras de cada categoria casam no texto."""
+    pontos: dict[str, int] = {}
     for tipo, padroes in REGRA_CATEGORIAS:
-        if any(re.search(padrao, texto_normalizado) for padrao in padroes):
-            encontradas.append(tipo)
-    return encontradas
+        casadas = sum(1 for p in padroes if re.search(p, texto_normalizado))
+        if casadas:
+            pontos[tipo] = casadas
+    return pontos
+
+
+def _categoria_vencedora(titulo_normalizado: str, corpo_normalizado: str) -> str | None:
+    """Decide a categoria: título manda, corpo desempata, prioridade é o último critério.
+
+    O título é o rótulo que a própria fonte deu ao conteúdo ("Edital nº…",
+    "Semana de…"); o corpo menciona inscrições, prazos e avisos de passagem.
+    Somar os dois deixava um corpo longo derrubar um título inequívoco — foi o
+    que fez "Prae lança **Edital** Unificado" virar comunicado, porque o corpo
+    casava com várias regras de aviso.
+
+    Só quando o título não casa com regra nenhuma é que o corpo decide sozinho.
+    Empates são resolvidos pela ordem de REGRA_CATEGORIAS, que codifica a
+    importância editorial: edital antes de prazo, prazo antes de evento.
+    """
+    candidatos = _pontuar(titulo_normalizado) or _pontuar(corpo_normalizado)
+    if not candidatos:
+        return None
+
+    prioridade = {tipo: i for i, (tipo, _) in enumerate(REGRA_CATEGORIAS)}
+    return min(
+        candidatos,
+        key=lambda tipo: (-candidatos[tipo], prioridade[tipo]),
+    )
 
 
 def _cursos(texto_normalizado: str) -> list[str]:
@@ -213,10 +281,10 @@ def classificar_texto(titulo: str, corpo: str) -> tuple[str | None, list[str]]:
     Retorna `categoria_tipo=None` quando nenhuma regra casa — nesse caso o
     conteúdo deve seguir para revisão manual (categoria vazia na fila).
     """
-    texto = _normalizar(f"{titulo}\n{corpo}")
-    categorias = _categorias(texto)
-    tipo = categorias[0] if categorias else None
-    return tipo, _cursos(texto)
+    titulo_normalizado = _normalizar(titulo)
+    corpo_normalizado = _normalizar(corpo)
+    tipo = _categoria_vencedora(titulo_normalizado, corpo_normalizado)
+    return tipo, _cursos(f"{titulo_normalizado}\n{corpo_normalizado}")
 
 
 def direcionar_conteudo(conteudo: Conteudo) -> bool:
