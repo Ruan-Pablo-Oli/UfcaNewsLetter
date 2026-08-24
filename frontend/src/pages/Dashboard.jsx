@@ -147,6 +147,12 @@ export function Dashboard() {
                 Fila de revisão
               </Link>
             )}
+            {user?.is_staff && (
+              <Link to="/fontes" className="dashboard-nav-item">
+                <span className="nav-icon">🌐</span>
+                Fontes
+              </Link>
+            )}
           </nav>
         </aside>
 

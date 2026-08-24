@@ -13,6 +13,8 @@ export default defineConfig({
       '/feedback': 'http://localhost:8000',
       '/busca': 'http://localhost:8000',
       '/historico': 'http://localhost:8000',
+      '/revisao/': 'http://localhost:8000',
+      '/fontes/': 'http://localhost:8000',
     },
   },
   test: {
