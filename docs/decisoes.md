@@ -273,3 +273,53 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
   - `prazo` foi extraído em 4 conteúdos e `publico_alvo` em 7 — as regex
     dependem de formulações específicas ("até dd/mm/aaaa", "destinadas a ...").
     Ampliá-las é trabalho separado, com ganho direto na tela.
+
+
+## ADR-013 — Classificação por pontuação, com o título decidindo
+
+- **Status:** aceito (agosto/2026)
+- **Contexto:** o classificador (#17) escolhia a categoria pela **primeira**
+  regra que casasse, na ordem `edital → prazo → evento → comunicado`. Medido no
+  corpus real, **48% dos conteúdos casam com mais de uma categoria** — ou seja,
+  em quase metade dos casos a categoria era decidida pela posição na lista, não
+  pela evidência. O efeito visível: um congresso com data de inscrição virava
+  `prazo`, porque a regra `até \d+ de` vem antes das regras de evento. Com a
+  aprovação automática (ADR-009), esse erro chega ao estudante sem revisão.
+- **Decisão:** três mudanças.
+  1. **Pontuação em vez de primeira regra**: conta quantas regras de cada
+     categoria casam.
+  2. **O título decide**; o corpo só é consultado quando o título não casa com
+     regra nenhuma. O título é o rótulo que a própria fonte deu ao conteúdo
+     ("Edital nº…", "Semana de…"); o corpo menciona inscrições e prazos de
+     passagem. Somar os dois deixava um corpo longo derrubar um título
+     inequívoco — foi o que fez "Prae lança **Edital** Unificado" virar
+     comunicado. Empates seguem a ordem de `REGRA_CATEGORIAS`, que codifica a
+     importância editorial.
+  3. **Vocabulário ampliado a partir do corpus**: fórum, webinário, oficina,
+     minicurso, colóquio, aula inaugural, arraiá, sarau (evento);
+     funcionamento, horário de atendimento, reajuste, tarifa, suspensão
+     (comunicado); "abre seleção", "credenciamento", "seleciona voluntários"
+     (edital); "último dia", "deve ser enviado", "comprovação de" (prazo).
+- **Falsos positivos encontrados ao medir** (todos silenciosos até então):
+  - `\bfeira\b` casava com **"sexta-feira"** e **"segunda-feira"** — qualquer
+    aviso com dia da semana virava evento;
+  - `\bsemana\b` (regra original) casava com "durante a semana";
+  - `\brefeit[óo]rio` casava com **"Auxílio Refeitório"**, nome de benefício num
+    título de edital.
+  Os três viraram teste.
+- **Consequências:**
+  - Na base real de 224 conteúdos, **33 mudaram de categoria**; `evento` passou
+    de 26 para 41 (os eventos que estavam como `prazo` ou `edital`), `prazo` caiu
+    de 31 para 26 e `comunicado` subiu de 18 para 23.
+  - `fixtures/titulos_rotulados.json` guarda 35 títulos reais com o rótulo
+    humano, e `test_classificador_precisao.py` trava regressão em 90% de acerto.
+    **O número não é estimativa de acurácia**: as regras foram ajustadas olhando
+    para esse conjunto. A validação independente foi revisar as mudanças no
+    corpus inteiro.
+  - `classificar --recategorizar` reaplica as regras ao conteúdo já
+    classificado, **sobrescrevendo inclusive correções manuais** — daí ser uma
+    flag explícita, e não o comportamento padrão.
+  - Continua sendo classificação por palavra-chave: casos que dependem de
+    entender o texto (um resultado de prêmio, um convite institucional) seguem
+    errando. O caminho para além disso é o mesmo do resumidor — um modelo — com
+    o custo e a dependência que isso traz.

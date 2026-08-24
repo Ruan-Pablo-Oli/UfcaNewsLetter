@@ -1,0 +1,49 @@
+{
+  "_comentario": [
+    "Conjunto de avaliação do classificador (US-03.2). Títulos REAIS coletados",
+    "dos portais da UFCA; o rótulo é o julgamento humano do que o estudante",
+    "esperaria ver no chip do card. Casos genuinamente ambíguos ficaram de fora.",
+    "Usado por test_classificador_precisao.py para medir acerto, não só",
+    "comportamento pontual de regra."
+  ],
+  "amostras": [
+    ["Edital Nº 01/2024 – Processo Seletivo Afastamento Stricto Sensu", "edital"],
+    ["RESULTADO DA 1ª FASE – EDITAL Nº 03/2022/CCSA – SELEÇÃO DE ESTAGIÁRIOS", "edital"],
+    ["CCSA/UFCA – Seleção de Estagiários 2024", "edital"],
+    ["Prograd/UFCA abre seleção de tutores para dois PETs recém-aprovados", "edital"],
+    ["SIBI divulga resultado do edital de bolsa PAP", "edital"],
+    ["PRPI divulga resultado da primeira fase da Seleção de Bolsistas PAP", "edital"],
+    ["PIICT 2026 – Resultado final da distribuição de bolsas", "edital"],
+    ["Prae lança Edital Unificado para concessão de Auxílios Transporte e Moradia", "edital"],
+    ["Prae/UFCA divulga resultado do Edital Integrado de Fluxo Contínuo-2026", "edital"],
+    ["IFE/UFCA – Edital nº 03/2024 – Seleção de estagiários", "edital"],
+    ["Aberta seleção para nova turma do Mestrado Profissional em Saúde da Família", "edital"],
+    ["Chamada pública para credenciamento de docentes no programa de pós-graduação", "edital"],
+
+    ["10º Fórum de Qualidade de Vida do Estudante", "evento"],
+    ["2º Congresso Internacional de Políticas Públicas, Territorialidade e Diferenças", "evento"],
+    ["Webnário “Por que a universidade adoece?”", "evento"],
+    ["Arraiá SolMí", "evento"],
+    ["CONVITE PARA O 3º CAFÉ CONECTA UFCA", "evento"],
+    ["10º Fórum Itinerante de Saúde Mental no Ensino Superior", "evento"],
+    ["Semana de Enfermagem debate cuidado em saúde mental", "evento"],
+    ["Aula inaugural do Centro de Referência em Formação Continuada", "evento"],
+    ["No campus Brejo Santo, mostra indígena destaca fotografias", "evento"],
+    ["UFCA promove oficina de escrita acadêmica para ingressantes", "evento"],
+    ["Palestra sobre inteligência artificial acontece no auditório do bloco H", "evento"],
+
+    ["Prazo final para solicitação de trancamento de disciplinas", "prazo"],
+    ["Comprovação de atividades acadêmicas deve ser enviada até 30/09/2026", "prazo"],
+    ["Prorrogado prazo para submissão de trabalhos à 3ª Sepec", "prazo"],
+    ["Matrícula institucional 2026.2 vai até o dia 15 de agosto", "prazo"],
+    ["Último dia para entrega do relatório de bolsistas PIBIC", "prazo"],
+
+    ["Biblioteca do campus JN funciona até 19h durante o mês de novembro", "comunicado"],
+    ["Reajuste na tarifa do RU dos campi Crato, Juazeiro do Norte e Barbalha", "comunicado"],
+    ["Restaurante Universitário funcionará em horário reduzido nesta sexta", "comunicado"],
+    ["Biblioteca amplia horário de atendimento presencial e não cobrará multa", "comunicado"],
+    ["Inovação – Campanha Valorize suas Ideias, Proteja suas Criações!", "comunicado"],
+    ["Funcionamento dos Refeitórios Universitários no dia 24 de junho", "comunicado"],
+    ["UFCA informa mudança no endereço da coordenação de pós-graduação", "comunicado"]
+  ]
+}
