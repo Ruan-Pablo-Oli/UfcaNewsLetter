@@ -191,3 +191,96 @@ class TestFeedbackHistorico:
 
         titulos = [item["conteudo_id"] for item in response.json()["results"]]
         assert titulos == [conteudo2.id, conteudo1.id]
+
+
+class TestDesfazerMarcacao:
+    """Desfazer é apagar o registro, não trocá-lo por positivo (US-01.3)."""
+
+    def test_delete_apaga_a_marcacao(self, client):
+        user = _make_user()
+        client.force_login(user)
+        conteudo = _make_conteudo()
+        Feedback.objects.create(usuario=user, conteudo=conteudo, tipo=Feedback.Tipo.NEGATIVO)
+
+        response = client.delete(f"/feedback/{conteudo.id}/")
+
+        assert response.status_code == 200
+        assert response.json()["removido"] is True
+        assert not Feedback.objects.filter(usuario=user, conteudo=conteudo).exists()
+
+    def test_conteudo_volta_ao_feed_depois_de_desfazer(self, client):
+        from newsletter.feed import feed_queryset_for_perfil
+        from newsletter.models import Perfil
+
+        user = _make_user()
+        client.force_login(user)
+        perfil = Perfil.objects.create(user=user, curso="", periodo=1)
+        # O helper cria conteúdo pendente; o feed só mostra aprovado.
+        conteudo = _make_conteudo(universal=True, status=Conteudo.Status.APROVADO)
+        Feedback.objects.create(usuario=user, conteudo=conteudo, tipo=Feedback.Tipo.NEGATIVO)
+        assert conteudo not in feed_queryset_for_perfil(perfil)
+
+        client.delete(f"/feedback/{conteudo.id}/")
+
+        assert conteudo in feed_queryset_for_perfil(perfil)
+
+    def test_delete_de_marcacao_inexistente_devolve_404(self, client):
+        user = _make_user()
+        client.force_login(user)
+        conteudo = _make_conteudo()
+
+        assert client.delete(f"/feedback/{conteudo.id}/").status_code == 404
+
+    def test_delete_nao_apaga_marcacao_de_outro_usuario(self, client):
+        dono = _make_user("dono")
+        outro = _make_user("outro")
+        client.force_login(outro)
+        conteudo = _make_conteudo()
+        Feedback.objects.create(usuario=dono, conteudo=conteudo, tipo=Feedback.Tipo.NEGATIVO)
+
+        assert client.delete(f"/feedback/{conteudo.id}/").status_code == 404
+        assert Feedback.objects.filter(usuario=dono, conteudo=conteudo).exists()
+
+    def test_delete_requires_login(self, client):
+        conteudo = _make_conteudo()
+
+        response = client.delete(f"/feedback/{conteudo.id}/")
+
+        assert response.status_code == 302
+
+
+class TestHistoricoDeMarcacoes:
+    def test_filtra_por_tipo(self, client):
+        user = _make_user()
+        client.force_login(user)
+        ruim = _make_conteudo("hash-ruim")
+        bom = _make_conteudo("hash-bom")
+        Feedback.objects.create(usuario=user, conteudo=ruim, tipo=Feedback.Tipo.NEGATIVO)
+        Feedback.objects.create(usuario=user, conteudo=bom, tipo=Feedback.Tipo.POSITIVO)
+
+        dados = client.get("/feedback/historico/?tipo=negativo").json()
+
+        assert dados["count"] == 1
+        assert dados["results"][0]["conteudo_id"] == ruim.id
+
+    def test_tipo_invalido_e_ignorado(self, client):
+        user = _make_user()
+        client.force_login(user)
+        Feedback.objects.create(
+            usuario=user, conteudo=_make_conteudo(), tipo=Feedback.Tipo.NEGATIVO
+        )
+
+        assert client.get("/feedback/historico/?tipo=qualquer").json()["count"] == 1
+
+    def test_traz_dados_para_reconhecer_o_conteudo(self, client):
+        user = _make_user()
+        client.force_login(user)
+        conteudo = _make_conteudo()
+        Feedback.objects.create(usuario=user, conteudo=conteudo, tipo=Feedback.Tipo.NEGATIVO)
+
+        item = client.get("/feedback/historico/").json()["results"][0]
+
+        assert item["conteudo_titulo"] == conteudo.titulo
+        assert item["conteudo_resumo"]
+        assert "conteudo_url" in item
+        assert item["fonte"] == conteudo.fonte.nome
