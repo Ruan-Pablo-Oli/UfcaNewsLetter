@@ -18,6 +18,7 @@ from django.views.decorators.http import require_http_methods
 
 from .classificador import classificar_texto
 from .models import Conteudo
+from .resumidor import resumo_para_exibicao
 
 
 def _staff(user) -> bool:
@@ -28,7 +29,11 @@ def _item(conteudo: Conteudo) -> dict:
     return {
         "id": conteudo.id,
         "titulo": conteudo.titulo,
+        # O revisor decide lendo: sem um trecho do texto, aprovar ou descartar
+        # seria adivinhação a partir do título.
+        "resumo": resumo_para_exibicao(conteudo, limite=400),
         "categoria": conteudo.categoria_id,
+        "categoria_nome": conteudo.categoria.nome if conteudo.categoria else None,
         "cursos": conteudo.cursos,
         "fonte_id": conteudo.fonte_id,
         "fonte_nome": conteudo.fonte.nome,
@@ -44,7 +49,7 @@ def fila_revisao(request):
     """Lista conteúdos pendentes (sem categoria ou status=pendente)."""
     qs = (
         Conteudo.objects.filter(status=Conteudo.Status.PENDENTE)
-        .select_related("fonte")
+        .select_related("fonte", "categoria")
         .order_by("criado_em")
     )
     paginator = Paginator(qs, 50)

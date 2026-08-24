@@ -112,3 +112,26 @@ class TestRoleDistinction:
         response = client.get(reverse("dashboard"))
 
         assert b"estudante" in response.content
+
+
+@pytest.mark.django_db
+def test_api_me_informa_se_o_usuario_e_staff(client, django_user_model):
+    """O front usa is_staff para decidir quem enxerga a fila de revisão."""
+    django_user_model.objects.create_user(
+        username="revisor", password="senha-de-teste-123", is_staff=True
+    )
+    client.login(username="revisor", password="senha-de-teste-123")
+
+    dados = client.get("/accounts/api/me/").json()
+
+    assert dados["is_staff"] is True
+
+
+@pytest.mark.django_db
+def test_api_me_marca_estudante_como_nao_staff(client, django_user_model):
+    django_user_model.objects.create_user(
+        username="estudante", password="senha-de-teste-123"
+    )
+    client.login(username="estudante", password="senha-de-teste-123")
+
+    assert client.get("/accounts/api/me/").json()["is_staff"] is False

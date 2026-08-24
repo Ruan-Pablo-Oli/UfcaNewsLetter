@@ -1057,3 +1057,200 @@
 .feed-link:hover {
   border-bottom-color: #2a7a84;
 }
+/* ---- Fila de revisão (US-05.2) ---------------------------------------- */
+
+.revisao {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+
+.revisao-topo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 18px 20px 0;
+}
+
+.revisao-voltar {
+  color: #2a7a84;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.revisao-usuario {
+  margin-left: auto;
+  color: #8a7a6a;
+  font-size: 14px;
+}
+
+.revisao-sair {
+  font-family: inherit;
+  font-size: 14px;
+  color: #7a6a5a;
+  background: none;
+  border: 1px solid rgba(122, 106, 90, 0.25);
+  border-radius: 8px;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+
+.revisao-title {
+  font-size: 26px;
+  color: #3a2a1e;
+  margin: 12px 0 6px;
+}
+
+.revisao-intro,
+.revisao-total,
+.revisao-vazio {
+  color: #6b5a4a;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+
+.revisao-aviso,
+.revisao-erro {
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.revisao-aviso {
+  background: rgba(117, 183, 71, 0.12);
+  color: #4a8230;
+}
+
+.revisao-erro {
+  background: rgba(214, 69, 45, 0.1);
+  color: #b03a20;
+}
+
+.revisao-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.revisao-item {
+  background: #fff;
+  border: 1px solid rgba(83, 43, 29, 0.1);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.revisao-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: #8a7a6a;
+}
+
+.revisao-categoria {
+  padding: 3px 12px;
+  border-radius: 100px;
+  font-weight: 600;
+  background: rgba(80, 189, 202, 0.12);
+  color: #2a7a84;
+}
+
+.revisao-categoria-vazia {
+  background: rgba(232, 145, 58, 0.14);
+  color: #a05a10;
+}
+
+.revisao-item-titulo {
+  font-size: 17px;
+  color: #3a2a1e;
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.revisao-resumo {
+  font-size: 14px;
+  color: #6b5a4a;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+
+.revisao-link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2a7a84;
+  text-decoration: none;
+  margin-bottom: 14px;
+}
+
+.revisao-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(83, 43, 29, 0.08);
+  padding-top: 14px;
+}
+
+.revisao-select-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6b5a4a;
+  margin-right: auto;
+}
+
+.revisao-select-label select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(83, 43, 29, 0.2);
+  background: #fff;
+  color: #3a2a1e;
+}
+
+.revisao-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.revisao-btn:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.revisao-btn:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.revisao-btn.aprovar {
+  background: rgba(117, 183, 71, 0.16);
+  color: #3f7128;
+}
+
+.revisao-btn.descartar {
+  background: rgba(214, 69, 45, 0.1);
+  color: #b03a20;
+}
+
+.revisao-btn.reclassificar {
+  background: rgba(83, 43, 29, 0.07);
+  color: #6b5a4a;
+}

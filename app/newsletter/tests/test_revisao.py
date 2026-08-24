@@ -138,3 +138,23 @@ def test_fila_mostra_origem_e_data(fonte, admin):
     item = admin.get("/revisao/").json()["itens"][0]
     assert item["fonte_nome"] == "Portal"
     assert "2026-08-01" in item["data_publicacao"]
+
+
+def test_item_da_fila_traz_texto_e_categoria_para_o_revisor(admin, fonte):
+    """O revisor decide lendo: título sozinho não basta para aprovar/descartar."""
+    Conteudo.objects.create(
+        titulo="Informe sem categoria",
+        corpo="Corpo do informe com detalhes suficientes para julgar. " * 5,
+        data_publicacao="2026-08-01T10:00:00Z",
+        fonte=fonte,
+        hash_dedup="hash-item-revisor",
+        status=Conteudo.Status.PENDENTE,
+    )
+
+    item = admin.get("/revisao/").json()["itens"][-1]
+
+    assert item["resumo"]
+    assert item["resumo"].startswith("Corpo do informe")
+    # categoria_nome é o que a tela exibe; categoria (id) segue para quem já usava.
+    assert "categoria_nome" in item
+    assert item["categoria_nome"] is None

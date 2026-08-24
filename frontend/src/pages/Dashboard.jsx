@@ -140,6 +140,13 @@ export function Dashboard() {
               <span className="nav-icon">👤</span>
               Perfil Acadêmico
             </Link>
+            {/* Moderação é restrita a staff no backend; escondida para os demais. */}
+            {user?.is_staff && (
+              <Link to="/revisao" className="dashboard-nav-item">
+                <span className="nav-icon">🛡️</span>
+                Fila de revisão
+              </Link>
+            )}
           </nav>
         </aside>
 

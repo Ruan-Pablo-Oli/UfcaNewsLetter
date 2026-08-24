@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Perfil } from './pages/Perfil'
 import { Busca } from './pages/Busca'
 import { Historico } from './pages/Historico'
+import { Revisao } from './pages/Revisao'
 import './App.css'
 
 function App() {
@@ -37,6 +38,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Historico />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/revisao"
+            element={
+              <ProtectedRoute staff>
+                <Revisao />
               </ProtectedRoute>
             }
           />
