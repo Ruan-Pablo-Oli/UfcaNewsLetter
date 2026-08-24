@@ -37,5 +37,27 @@ services:
       db:
         condition: service_healthy
 
+  # Agendador das tarefas periódicas (ADR-008): mesma imagem do `web`, processo
+  # separado. Fica fora do `web` de propósito — reiniciar a aplicação não
+  # derruba o agendamento, e uma segunda réplica do `web` não duplicaria as
+  # execuções.
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ufcanewsletter:latest
+    container_name: ufcanewsletter-scheduler
+    restart: unless-stopped
+    command: sh /usr/local/bin/scheduler.sh
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - SCHEDULER_INTERVALO_SEGUNDOS=${SCHEDULER_INTERVALO_SEGUNDOS:-900}
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:

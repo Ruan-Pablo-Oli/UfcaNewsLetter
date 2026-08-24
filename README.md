@@ -31,6 +31,7 @@ A documentação técnica e de processo fica em [`docs/`](docs/):
 |---|---|---|
 | `web` | `8000` | Aplicação Django |
 | `db` | `5432` | PostgreSQL 16 |
+| `scheduler` | — | Executa em ciclo `coletar` → `enviar_digest` → `notificar_push` (ADR-008) |
 
 ### Variáveis de ambiente
 
@@ -50,6 +51,12 @@ cp .env.example .env
 | `POSTGRES_PASSWORD` | Senha do banco | — (defina um valor único) |
 | `POSTGRES_HOST` | Host do banco | `db` |
 | `POSTGRES_PORT` | Porta do banco | `5432` |
+| `DJANGO_EMAIL_BACKEND` | Backend de e-mail do digest | console (imprime no log) |
+| `EMAIL_HOST` / `EMAIL_PORT` | Servidor SMTP (só com o backend SMTP) | `localhost` / `587` |
+| `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` | Credenciais SMTP | — |
+| `EMAIL_USE_TLS` | TLS no envio | `True` |
+| `DEFAULT_FROM_EMAIL` | Remetente do digest | `UFCA Newsletter <noreply@ufca.edu.br>` |
+| `SCHEDULER_INTERVALO_SEGUNDOS` | Intervalo do ciclo do agendador | `900` (15 min) |
 
 O `.env` não é versionado (está no `.gitignore`); `make up` cria um automaticamente a partir do `.env.example` caso ainda não exista.
 
@@ -57,7 +64,7 @@ O `.env` não é versionado (está no `.gitignore`); `make up` cria um automatic
 
 ```bash
 make build      # constrói a imagem
-make up         # sobe web + Postgres e aplica as migrações
+make up         # sobe web + Postgres + agendador e aplica as migrações
 make seed-demo  # popula o banco com conteúdos fictícios (ver abaixo)
 make logs       # acompanha os logs
 make shell      # bash interativo no container
@@ -78,6 +85,31 @@ make seed-demo
 
 É idempotente e **não** roda sozinho na subida dos contêineres — são dados
 falsos, então executá-lo é uma decisão explícita.
+
+### Tarefas periódicas
+
+O serviço `scheduler` roda, em ciclo, os três comandos que fazem a aplicação
+funcionar sozinha: `coletar` (varre as fontes devidas), `enviar_digest` (envia a
+newsletter aos perfis elegíveis) e `notificar_push`. Cada comando decide
+sozinho se já é hora de agir — o intervalo do ciclo é só a resolução do
+agendamento (ver ADR-008).
+
+```bash
+docker compose logs -f scheduler        # acompanha os ciclos
+```
+
+Com o backend padrão de e-mail (console), o digest é **impresso no log do
+agendador** em vez de enviado — nada sai para estudantes de verdade em
+desenvolvimento. Para enviar mesmo, troque `DJANGO_EMAIL_BACKEND` para
+`django.core.mail.backends.smtp.EmailBackend` e preencha as credenciais SMTP.
+
+Para rodar qualquer tarefa na mão, sem esperar o ciclo:
+
+```bash
+docker compose exec web python manage.py coletar --fonte <id> --limite-paginas 2
+docker compose exec web python manage.py enviar_digest --dry-run
+docker compose exec web python manage.py notificar_push --dry-run
+```
 
 Ou diretamente com Docker Compose:
 

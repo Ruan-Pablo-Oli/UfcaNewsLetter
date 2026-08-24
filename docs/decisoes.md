@@ -89,12 +89,12 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
   `.github/workflows/` precisam ser adicionados manualmente. A segurança se apoia
   em "só o dono aciona" + revisão humana no merge.
 
-## ADR-008 — Agendamento das coletas: management command + cron
+## ADR-008 — Agendamento das coletas: management command + serviço agendador
 
-- **Status:** proposta (issue #52) — decisão de infraestrutura ainda não
-  ratificada pelo time; registrada aqui para destravar #16 (coletor), #24 (job
-  de envio do digest) e #22 (disparo de push), que dependem de *alguma* forma
-  de "rodar algo a cada N minutos" existir.
+- **Status:** aceito (agosto/2026). Nasceu como proposta na issue #52, para
+  destravar #16 (coletor), #24 (digest) e #22 (push); ratificado ao implementar
+  o serviço `scheduler` no `compose.yaml`. A questão que ficara em aberto —
+  *onde* o agendador roda — está resolvida no fim deste registro.
 - **Contexto:** o coletor da #16 precisa varrer as `Fonte` ativas
   periodicamente, respeitando `Fonte.intervalo_coleta` e atualizando
   `Fonte.ultima_coleta` a cada execução bem-sucedida. É o mesmo tipo de
@@ -133,15 +133,27 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
   - Custo: sem retry/backoff automático, sem fila de prioridade, sem
     monitoramento de execução pronto — se algo disso vier a ser necessário
     antes do volume justificar Celery, precisa ser construído à mão.
-  - **Em aberto para o time decidir:** onde o cron roda no ambiente local —
-    um serviço `scheduler` próprio no `compose.yaml` (ex.: imagem baseada em
-    `ofelia`/`supercronic`, ou um container simples com `cron` do sistema
-    operacional chamando `docker compose exec web python manage.py ...`) vs.
-    cron do host do desenvolvedor (mais simples, porém não reproduz o
-    ambiente de todo mundo igual). Também em aberto: como testar sem esperar
-    o `intervalo_coleta` — a proposta é os comandos aceitarem execução manual
-    direta (`python manage.py coletar --fonte=<id>`) e os testes de cada
-    comando usarem `call_command` diretamente, sem depender do cron.
+  - **Resolvido (agosto/2026): serviço `scheduler` no `compose.yaml`**, com a
+    mesma imagem do `web` mas processo separado, rodando `docker/scheduler.sh`.
+    Escolhido em vez do cron do host porque sobe igual para todo mundo com
+    `make up`; e em vez de um agendador embutido no `web` porque reiniciar a
+    aplicação não derruba o agendamento, e uma segunda réplica do `web` não
+    duplicaria as execuções.
+  - **Por que um laço de intervalo fixo, e não o `cron` do sistema:** a decisão
+    de "já é hora?" **já mora em cada comando** — `coletar` respeita
+    `Fonte.intervalo_coleta`, `enviar_digest` respeita `Perfil.frequencia_email`
+    (1 ou 7 dias desde a última `Entrega`) e `notificar_push` deduplica por
+    `Entrega`. Com isso, o agendador não precisa de expressões cron: basta
+    acordar de tempos em tempos e chamar os três. O intervalo
+    (`SCHEDULER_INTERVALO_SEGUNDOS`, padrão 900) define a *resolução* do
+    agendamento, não a frequência das tarefas. Evita instalar e configurar o
+    `cron` na imagem — que ainda exigiria exportar as variáveis de ambiente do
+    contêiner para o ambiente do daemon, um ponto clássico de erro.
+  - Uma tarefa que falha (rede fora, SMTP recusando) é registrada no log e
+    **não interrompe as demais nem o laço** — o ciclo seguinte tenta de novo.
+  - Testar sem esperar o intervalo continua direto: os comandos aceitam
+    execução manual (`python manage.py coletar --fonte=<id>`) e os testes usam
+    `call_command`, sem depender do agendador.
 
 
 ## ADR-009 — Aprovação automática do conteúdo classificado
