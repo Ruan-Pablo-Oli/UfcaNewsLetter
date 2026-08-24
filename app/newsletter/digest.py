@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from .feed import feed_queryset_for_perfil
 from .models import Conteudo, Entrega, Perfil
+from .resumidor import resumo_para_exibicao
 
 ASSUNTO = "UFCA Newsletter — novidades para você"
 LINK_PREFERENCIAS = "/preferencias/"
@@ -79,7 +80,7 @@ def _montar_email(perfil: Perfil, conteudos: list[Conteudo]) -> tuple[str, str]:
     """Retorna ``(assunto, corpo_texto)`` do digest."""
     linhas = []
     for c in conteudos:
-        resumo = c.resumo or (c.corpo[:200] + "…" if len(c.corpo) > 200 else c.corpo)
+        resumo = resumo_para_exibicao(c)
         link = c.url or "sem link"
         linhas.append(f"- {c.titulo}\n  {resumo}\n  {link}")
 

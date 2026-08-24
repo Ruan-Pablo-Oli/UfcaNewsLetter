@@ -232,3 +232,44 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
   - Custo: rebuild da imagem a cada mudança de front (não há hot reload nesse
     modo). O fluxo de desenvolvimento continua sendo `npm run dev` com proxy
     para o Django.
+
+
+## ADR-012 — Resumo: ligado ao pipeline, lendo os anexos, com recorte de exibição
+
+- **Status:** aceito (agosto/2026)
+- **Contexto:** o resumidor da US-03.3 (#18) foi entregue com testes e **nunca
+  foi chamado por ninguém** — nenhum comando, nem a coleta. Os 224 conteúdos
+  reais estavam com `resumo` vazio e o feed mostrava cards sem texto. Ao ligar,
+  apareceu um segundo problema: o resumidor só age em corpos com 500+ palavras,
+  e os informes da UFCA são curtos (mediana de **177** palavras) — apenas **5**
+  dos 224 qualificavam. O conteúdo extenso não está no corpo, está no **PDF
+  anexado**: um edital com 8.104 palavras contra 465 no informe que o anuncia.
+- **Decisão:** três partes.
+  1. **Ligar:** novo `manage.py resumir` (o módulo já tinha
+     `resumir_pendentes` "para o comando") e chamada em `_persistir`, para uma
+     execução de `coletar` render conteúdo pronto para exibição.
+  2. **Somar os anexos:** `texto_completo` junta o corpo ao texto dos PDFs já
+     processados pela #54. O alvo passou de 5 para **65** conteúdos.
+  3. **Recorte de exibição:** `resumo_para_exibicao` devolve o resumo quando
+     existe e, quando não, o início do corpo — regra que o `digest.py` já tinha
+     localmente e que agora é uma só, usada por feed, busca, histórico e digest.
+     Nenhum card fica vazio.
+- **Limpeza do texto de PDF:** a extração do PyMuPDF quebra linha a cada linha
+  do documento e mantém timbre, rodapé e numeração de seção. Sem tratamento, o
+  resumo saía como *"DA MATRÍCULA 3.1 A matrícula das pessoas..."* ou como o
+  endereço da reitoria, e o público-alvo vinha com quebra de linha no meio.
+  Junta-se as quebras e descartam-se sentenças que são cabeçalho (`3.1`,
+  `DA MATRÍCULA`, `Art. 5º`) ou timbre institucional (endereço, telefone, site,
+  e-mail).
+- **Consequências:**
+  - Cobertura de resumo: **65 de 224 (29%)**; cards sem texto nenhum: **0**.
+  - `gerado_por_ia` continua `False` em 100% — nada aqui usa modelo.
+  - **Limite reconhecido:** resumo extrativo sobre texto de PDF continua sendo
+    recorte de sentenças, não redação. As frases escolhidas são reais e
+    informativas, mas às vezes começam no meio do assunto. A porta para
+    qualidade melhor já existe e é o `summarizer` injetável do módulo: um
+    chamável `(titulo, corpo) -> str` que, quando usado, marca
+    `gerado_por_ia=True`. Ligar um LLM ali é mudança de uma linha na chamada.
+  - `prazo` foi extraído em 4 conteúdos e `publico_alvo` em 7 — as regex
+    dependem de formulações específicas ("até dd/mm/aaaa", "destinadas a ...").
+    Ampliá-las é trabalho separado, com ganho direto na tela.

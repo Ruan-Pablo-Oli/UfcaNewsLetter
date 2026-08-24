@@ -12,6 +12,7 @@ from newsletter.resumidor import (
     resumir_conteudo,
     resumir_extrativo,
     resumir_pendentes,
+    resumo_para_exibicao,
 )
 
 TEXTO_LONGO = (
@@ -47,6 +48,13 @@ def _palavras(texto: str) -> int:
 
 
 # --- funções puras ---
+
+
+_EDITAL_LONGO = (
+    "A Pró-Reitoria de Assuntos Estudantis torna pública a seleção. "
+    "As inscrições são destinadas a discentes de graduação em situação de "
+    "vulnerabilidade socioeconômica. As inscrições vão até 30/09/2026. "
+) + ("Item do edital sobre documentação, prazos e critérios de avaliação. " * 90)
 
 
 def test_resumo_nao_gerado_para_texto_curto():
@@ -162,3 +170,72 @@ def test_resumir_pendentes_processa_apenas_longos_sem_resumo(fonte):
     curto.refresh_from_db()
     assert longo.resumo
     assert curto.resumo == ""
+
+
+# --- texto dos anexos e fallback de exibição (ADR-012) ----------------------
+
+
+@pytest.mark.django_db
+def test_resume_usando_o_texto_do_anexo_quando_o_corpo_e_curto(fonte):
+    """Informe curto apontando para um edital longo em PDF."""
+    conteudo = Conteudo.objects.create(
+        titulo="Publicado edital de auxílio",
+        corpo="A Prae publicou o edital. Veja o documento anexo.",
+        data_publicacao="2026-08-01T10:00:00Z",
+        fonte=fonte,
+        hash_dedup="hash-anexo-longo",
+        anexos=[{"url": "https://documentos.ufca.edu.br/e.pdf", "text": _EDITAL_LONGO}],
+    )
+
+    assert resumir_conteudo(conteudo) is True
+    conteudo.refresh_from_db()
+    assert conteudo.resumo
+    assert conteudo.gerado_por_ia is False
+    # O prazo estava só no PDF.
+    assert conteudo.prazo is not None
+
+
+@pytest.mark.django_db
+def test_conteudo_curto_sem_anexo_continua_sem_resumo(fonte):
+    conteudo = Conteudo.objects.create(
+        titulo="Aviso rápido",
+        corpo="Curto demais para resumir.",
+        data_publicacao="2026-08-01T10:00:00Z",
+        fonte=fonte,
+        hash_dedup="hash-curto-sem-anexo",
+    )
+
+    assert resumir_conteudo(conteudo) is False
+    assert conteudo.resumo == ""
+
+
+@pytest.mark.django_db
+def test_exibicao_cai_no_inicio_do_corpo_quando_nao_ha_resumo(fonte):
+    corpo = "Primeira frase do informe. " * 30
+    conteudo = Conteudo.objects.create(
+        titulo="Sem resumo",
+        corpo=corpo,
+        data_publicacao="2026-08-01T10:00:00Z",
+        fonte=fonte,
+        hash_dedup="hash-exibicao",
+    )
+
+    texto = resumo_para_exibicao(conteudo)
+
+    assert texto.endswith("…")
+    assert len(texto) <= 201
+    assert texto.startswith("Primeira frase")
+
+
+@pytest.mark.django_db
+def test_exibicao_prefere_o_resumo_quando_existe(fonte):
+    conteudo = Conteudo.objects.create(
+        titulo="Com resumo",
+        corpo="Corpo longo que não deve aparecer. " * 20,
+        resumo="Resumo curado.",
+        data_publicacao="2026-08-01T10:00:00Z",
+        fonte=fonte,
+        hash_dedup="hash-exibicao-2",
+    )
+
+    assert resumo_para_exibicao(conteudo) == "Resumo curado."

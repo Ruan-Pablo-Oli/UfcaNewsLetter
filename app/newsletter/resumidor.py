@@ -50,6 +50,11 @@ class Resumo:
 
 def _sentencas(texto: str) -> list[str]:
     partes = [s.strip() for s in _SENTENCAO_RE.split(texto) if s.strip()]
+    # "DA MATRÍCULA", "3.1", "Art. 5º" não são frases: entram no resumo como
+    # ruído, sem informar nada ao estudante.
+    partes = [
+        s for s in partes if not _RUIDO_DE_PDF_RE.match(s) and not _TIMBRE_RE.search(s)
+    ]
     return partes or ([texto.strip()] if texto.strip() else [])
 
 
@@ -118,6 +123,64 @@ def resumir_extrativo(titulo: str, corpo: str) -> Resumo | None:
     return Resumo(texto=" ".join(escolhidas))
 
 
+_ESPACOS_RE = re.compile(r"\s+")
+# Cabeçalho/numeração de seção de edital: "3.1", "DA MATRÍCULA", "Art. 5º".
+_RUIDO_DE_PDF_RE = re.compile(
+    r"^(?:\d+(?:\.\d+)*\s*[-–.)]?\s*$|[A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,}$|art\.?\s*\d+)",
+    re.IGNORECASE,
+)
+# Timbre e rodapé de ofício: endereço, telefone, site e e-mail institucional.
+# Aparecem em toda página do PDF e não informam nada sobre o edital.
+_TIMBRE_RE = re.compile(
+    r"(?:@ufca\.edu\.br|www\.ufca\.edu\.br|\bfone\b|\bcep\b|cidade\s+universit[áa]ria"
+    r"|minist[ée]rio\s+da\s+educa[çc][ãa]o|universidade\s+federal\s+do\s+cariri)",
+    re.IGNORECASE,
+)
+
+
+def _limpar_texto_de_pdf(texto: str) -> str:
+    """Junta as quebras de linha que a extração de PDF deixa no meio das frases.
+
+    O texto vindo do PyMuPDF quebra linha a cada linha do documento, então uma
+    sentença chega picada. Sem isso, o recorte por sentença e as regex de prazo
+    e público-alvo caem no meio de uma frase — foi o que produziu um
+    público-alvo com quebra de linha no meio.
+    """
+    return _ESPACOS_RE.sub(" ", texto).strip()
+
+
+def texto_completo(conteudo) -> str:
+    """Corpo do conteúdo somado ao texto dos anexos PDF já processados.
+
+    Os informes da UFCA são curtos (mediana de ~177 palavras) e costumam
+    apontar para um PDF onde está o documento de verdade — um edital de 8 mil
+    palavras contra 465 no corpo. Resumir só o corpo deixaria de fora
+    justamente o conteúdo extenso que a US-03.3 existe para tratar.
+    """
+    partes = [conteudo.corpo]
+    for anexo in conteudo.anexos or []:
+        texto = (anexo or {}).get("text") or ""
+        if texto:
+            partes.append(_limpar_texto_de_pdf(texto))
+    return "\n".join(partes)
+
+
+def resumo_para_exibicao(conteudo, limite: int = 200) -> str:
+    """Resumo do conteúdo para as telas; cai no início do corpo se não houver.
+
+    A maior parte do conteúdo coletado é curta demais para ser resumida, e um
+    card sem texto nenhum é pior do que um trecho do começo. Era o que o digest
+    já fazia por conta própria; agora é uma regra só, usada por feed, busca,
+    histórico e digest.
+    """
+    if conteudo.resumo:
+        return conteudo.resumo
+    corpo = (conteudo.corpo or "").strip()
+    if len(corpo) <= limite:
+        return corpo
+    return corpo[:limite].rstrip() + "…"
+
+
 def resumir_conteudo(
     conteudo,
     *,
@@ -133,17 +196,18 @@ def resumir_conteudo(
     if conteudo.resumo:
         return False
 
-    if len(conteudo.corpo.split()) < LIMITE_PALAVRAS:
+    texto = texto_completo(conteudo)
+    if len(texto.split()) < LIMITE_PALAVRAS:
         return False
 
-    prazo = extrair_prazo(f"{conteudo.titulo}\n{conteudo.corpo}")
-    publico = extrair_publico_alvo(conteudo.corpo) or ""
+    prazo = extrair_prazo(f"{conteudo.titulo}\n{texto}")
+    publico = extrair_publico_alvo(texto) or ""
 
     if summarizer is not None:
-        texto_resumo = summarizer(conteudo.titulo, conteudo.corpo).strip()
+        texto_resumo = summarizer(conteudo.titulo, texto).strip()
         gerado_por_ia = True
     else:
-        r = resumir_extrativo(conteudo.titulo, conteudo.corpo)
+        r = resumir_extrativo(conteudo.titulo, texto)
         texto_resumo = r.texto if r else ""
         gerado_por_ia = False
 
