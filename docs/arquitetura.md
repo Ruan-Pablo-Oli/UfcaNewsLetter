@@ -138,11 +138,14 @@ erDiagram
   "não classificado" (decisão de modelagem — ver issue #52), porque um valor
   nulo não aparece como filtro espúrio no admin nem como chip no frontend.
 - `Conteudo.hash_dedup` é único → deduplicação de conteúdo coletado.
-- **Fila de revisão manual** (`Conteudo.status`, US-05.2/#27): todo conteúdo
-  nasce `pendente`; só `aprovado` aparece no feed (`feed_queryset_for_perfil`
-  filtra por `status=aprovado`). Conteúdo pode ser marcado `descartado`. Os
-  registros anteriores a este campo (issue #52) foram migrados como `aprovado`
-  para não sumirem do feed.
+- **Aprovação automática + fila de revisão** (`Conteudo.status`, US-05.2/#27 e
+  ADR-009): o conteúdo é gravado `pendente` e o classificador o promove a
+  `aprovado` assim que consegue atribuir uma categoria — o que não casa com
+  nenhuma regra fica `pendente` e cai na fila do admin. Só `aprovado` aparece no
+  feed (`feed_queryset_for_perfil` filtra por `status=aprovado`); conteúdo pode
+  ser marcado `descartado`, e reclassificar um item descartado **não** o traz de
+  volta. Os registros anteriores a este campo (issue #52) foram migrados como
+  `aprovado` para não sumirem do feed.
 - `Entrega` é única por (`conteudo`, `usuario`, `canal`); `Feedback` é único por
   (`usuario`, `conteudo`).
 - **Personalização do feed** (`Conteudo.universal`, `Conteudo.cursos`,

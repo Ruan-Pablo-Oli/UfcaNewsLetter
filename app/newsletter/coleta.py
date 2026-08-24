@@ -19,6 +19,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.timezone import is_naive, make_aware
 
+from .classificador import classificar_conteudo
 from .collectors import (
     CalendarioCollector,
     CollectionError,
@@ -107,8 +108,13 @@ def _persistir(record, fonte: Fonte, *, anexos: list[dict] | None = None) -> boo
 
     A deduplicação usa ``Conteudo.hash_dedup`` (único): se já existe um conteúdo
     com o mesmo hash, ``get_or_create`` não duplica e retorna ``criado=False``.
+
+    Todo registro novo passa pelo classificador na hora da coleta, e não só no
+    ``manage.py classificar``: é o que faz uma execução de ``coletar`` já render
+    conteúdo publicável, sem depender de um segundo comando (ADR-009). O
+    classificador aprova o que conseguir categorizar e deixa o resto pendente.
     """
-    _, criado = Conteudo.objects.get_or_create(
+    conteudo, criado = Conteudo.objects.get_or_create(
         hash_dedup=record.content_hash,
         defaults={
             "titulo": record.title,
@@ -120,6 +126,8 @@ def _persistir(record, fonte: Fonte, *, anexos: list[dict] | None = None) -> boo
             "anexos": anexos or [],
         },
     )
+    if criado:
+        classificar_conteudo(conteudo)
     return criado
 
 

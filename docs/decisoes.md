@@ -142,3 +142,45 @@ contexto → decisão → consequências. Data de referência: **julho/2026**.
     o `intervalo_coleta` — a proposta é os comandos aceitarem execução manual
     direta (`python manage.py coletar --fonte=<id>`) e os testes de cada
     comando usarem `call_command` diretamente, sem depender do cron.
+
+
+## ADR-009 — Aprovação automática do conteúdo classificado
+
+- **Status:** aceito (agosto/2026)
+- **Contexto:** a US-05.2 (#27) fez todo conteúdo coletado nascer `pendente`,
+  esperando um administrador aprovar item a item antes de aparecer no feed. Na
+  primeira coleta real (uma página de Informes) isso significou **20 itens
+  parados na fila** vindos de uma única fonte, de uma única categoria. Com as
+  16 fontes cadastradas rodando no intervalo delas, o volume torna a revisão
+  manual o gargalo do produto: sem um admin de plantão, o feed do estudante
+  simplesmente não recebe nada.
+- **Decisão:** o conteúdo é aprovado automaticamente quando o classificador
+  (#17) consegue atribuir uma categoria. Ter casado com uma regra de
+  palavra-chave é o sinal de que o item é reconhecidamente institucional; o que
+  não casa com nenhuma regra continua `pendente` e permanece na fila de revisão.
+  A promoção acontece dentro de `classificar_conteudo`, então vale nos dois
+  caminhos: na coleta (que passou a classificar cada registro novo) e no
+  `manage.py classificar` sobre o backlog.
+- **Alternativas consideradas:**
+  1. **Aprovar tudo na coleta.** Mais simples, mas entrega ao estudante
+     qualquer coisa que o adaptador extraia, incluindo páginas de listagem mal
+     parseadas — sem nenhum sinal de qualidade no meio.
+  2. **Flag por fonte** (`Fonte.aprovacao_automatica`). Dá controle fino, mas
+     exige migração e uma decisão humana por fonte cadastrada; o sinal de
+     confiança fica na origem, não no conteúdo.
+  3. **Chave global de configuração.** Liga/desliga sem migração, porém é
+     tudo-ou-nada e não usa nenhuma evidência sobre o item.
+- **Consequências:**
+  - Ganho: o pipeline `coletar` → feed funciona sem intervenção humana; a fila
+    de revisão deixa de ser obrigatória e passa a ser exceção — na medição da
+    fonte 10, 17 de 20 itens seriam automáticos e 3 iriam para a fila.
+  - Custo: a qualidade do feed passa a depender da precisão do classificador
+    por regras. Um falso positivo (regra casando com algo irrelevante) chega ao
+    estudante sem revisão. Mitigações existentes: o revisor ainda pode
+    `descartar` depois, e o feedback negativo do estudante (#15) remove o item
+    do feed dele e rebaixa a categoria.
+  - Conteúdo `descartado` que for reclassificado **não** volta ao feed: a
+    promoção só age sobre `pendente`, para uma decisão humana nunca ser
+    revertida por um processo automático.
+  - Se a precisão se mostrar insuficiente, o passo natural é a alternativa 2
+    (flag por fonte) sobre esta política, não o retorno à revisão obrigatória.
