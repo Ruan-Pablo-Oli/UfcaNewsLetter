@@ -676,6 +676,59 @@
   line-height: 1.6;
 }
 
+/* Prazo: a cor sinaliza urgência, mas o texto do badge já diz "faltam N dias"
+   — quem não distingue as cores não perde a informação. */
+.feed-prazo {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 8px;
+  margin: 0 0 10px;
+  background: rgba(80, 189, 202, 0.12);
+  color: #2a7a84;
+}
+
+.feed-prazo-proximo {
+  background: rgba(232, 145, 58, 0.16);
+  color: #a05a10;
+}
+
+.feed-prazo-hoje {
+  background: rgba(214, 69, 45, 0.14);
+  color: #b03a20;
+}
+
+.feed-prazo-encerrado {
+  background: rgba(120, 110, 100, 0.12);
+  color: #7a6a5a;
+  font-weight: 500;
+}
+
+/* Link para o conteúdo original na fonte. */
+.feed-link,
+.modal-link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2a7a84;
+  text-decoration: none;
+  margin: 0 0 10px;
+  border-bottom: 1px solid rgba(42, 122, 132, 0.3);
+  padding-bottom: 1px;
+}
+
+.feed-link:hover,
+.modal-link:hover {
+  color: #1d5a62;
+  border-bottom-color: #1d5a62;
+}
+
+.modal-link {
+  margin: 6px 0 14px;
+  font-size: 14px;
+}
+
 /* Wrapper do tooltip "Por que estou vendo isso?" (ReasonTooltip). */
 .feed-reason {
   position: relative;

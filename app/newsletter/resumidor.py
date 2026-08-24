@@ -25,8 +25,42 @@ LIMITE_PALAVRAS = 500
 MAX_PALAVRAS_RESUMO = 120
 
 _SENTENCAO_RE = re.compile(r"(?<=[.!?])\s+")
+_DATA = r"\d{1,2}/\d{1,2}/\d{4}"
+
+# Padrões de data-limite, em ordem de prioridade. O segundo elemento é o grupo
+# que contém o prazo — em intervalos ("de X a Y"), o prazo é o **fim**.
+#
+# Deliberadamente conservador: a expressão mais comum no corpus não é prazo
+# nenhum, é "atualizado em DATA" (194 ocorrências em 224 conteúdos), a data de
+# atualização da própria página. Casar isso encheria os cards de prazos falsos,
+# o que é pior do que card sem prazo. Por isso toda regra exige uma palavra que
+# indique limite ("até", "prazo", "encerram", "período de ... a").
+_PADROES_PRAZO: list[tuple[re.Pattern[str], int]] = [
+    (
+        re.compile(
+            rf"(?:no\s+per[íi]odo\s+de|do\s+dia|entre\s+os\s+dias|de)\s+({_DATA})"
+            rf"\s*(?:at[ée]\s+(?:o\s+dia\s+)?|a\s+|[-–]\s*)({_DATA})",
+            re.IGNORECASE,
+        ),
+        2,
+    ),
+    (
+        re.compile(
+            rf"(?:at[ée]\s+(?:o\s+dia\s+|[àa]s\s+\d{{1,2}}(?:h\d{{0,2}}|:\d{{2}})?\s+"
+            rf"(?:do\s+dia\s+)?)?"
+            rf"|prazo(?:\s+(?:final|limite))?\s*:?\s*"
+            rf"|data(?:\s+e\s+hor[áa]rio)?\s+limite\s*:?\s*"
+            rf"|encerram(?:-se)?\s+em\s+"
+            rf"|submiss[ãa]o\s*:?\s*)({_DATA})",
+            re.IGNORECASE,
+        ),
+        1,
+    ),
+]
+
+# Mantido para o score das sentenças: "esta frase fala de prazo?".
 _DATA_LIMITE_RE = re.compile(
-    r"(?:até|até o dia|prazo:|limite|até dia)\s*(\d{1,2}/\d{1,2}/\d{4})",
+    rf"(?:at[ée]|prazo|limite|encerram|per[íi]odo\s+de)\s*[^.]{{0,30}}?({_DATA})",
     re.IGNORECASE,
 )
 _PUBLICO_RE = re.compile(
@@ -59,15 +93,23 @@ def _sentencas(texto: str) -> list[str]:
 
 
 def extrair_prazo(corpo: str) -> datetime | None:
-    """Encontra data-limite explícita ("até 30/09/2026"). None se ausente."""
-    m = _DATA_LIMITE_RE.search(corpo)
-    if m is None:
-        return None
-    try:
-        dia, mes, ano = (int(p) for p in m.group(1).split("/"))
-        return datetime(ano, mes, dia)
-    except ValueError:
-        return None
+    """Encontra a data-limite do conteúdo. None quando não há uma explícita.
+
+    Reconhece "até 30/09/2026", "até as 23h59 do dia 30/09/2026", "prazo final:
+    30/09/2026" e intervalos como "no período de 01/09/2026 a 30/09/2026" — nos
+    intervalos, o prazo é o fim. Datas sem palavra de limite por perto são
+    ignoradas de propósito (ver `_PADROES_PRAZO`).
+    """
+    for padrao, grupo in _PADROES_PRAZO:
+        m = padrao.search(corpo)
+        if m is None:
+            continue
+        try:
+            dia, mes, ano = (int(p) for p in m.group(grupo).split("/"))
+            return datetime(ano, mes, dia)
+        except ValueError:
+            continue
+    return None
 
 
 def extrair_publico_alvo(corpo: str | None) -> str | None:

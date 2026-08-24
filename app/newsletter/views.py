@@ -47,6 +47,10 @@ def feed(request):
             "fonte": conteudo.fonte.nome,
             "data_publicacao": conteudo.data_publicacao.isoformat(),
             "universal": conteudo.universal,
+            # Sem a URL o card é informativo mas não acionável: o estudante lê
+            # que saiu um edital e não tem como abri-lo.
+            "url": conteudo.url,
+            "prazo": conteudo.prazo.isoformat() if conteudo.prazo else None,
             "motivo": motivo_recomendacao(conteudo, perfil, interesse_ids=interesse_ids),
         }
         for conteudo in pagina.object_list
