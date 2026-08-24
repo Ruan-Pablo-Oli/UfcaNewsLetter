@@ -15,6 +15,20 @@ from newsletter.models import Interesse, Perfil, PushSubscription
 from .forms import SignUpForm
 
 
+def _dados_do_usuario(user) -> dict:
+    """Identidade que o front consome. `is_staff` decide quem vê a moderação.
+
+    A tela de revisão (US-05.2) é restrita a staff no backend; sem esse campo o
+    front não teria como esconder o que o usuário não pode usar, e o estudante
+    veria um link que só devolveria 403.
+    """
+    return {
+        "username": user.username,
+        "email": user.email,
+        "is_staff": user.is_staff,
+    }
+
+
 @ensure_csrf_cookie
 @require_http_methods(["GET"])
 def api_csrf(request):
@@ -32,7 +46,7 @@ def api_login(request):
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        return JsonResponse({"username": user.username, "email": user.email})
+        return JsonResponse(_dados_do_usuario(user))
     return JsonResponse({"erro": "Usuário ou senha inválidos."}, status=400)
 
 
@@ -45,7 +59,7 @@ def api_logout(request):
 @require_http_methods(["GET"])
 def api_me(request):
     if request.user.is_authenticated:
-        return JsonResponse({"username": request.user.username, "email": request.user.email})
+        return JsonResponse(_dados_do_usuario(request.user))
     return JsonResponse({"erro": "Não autenticado."}, status=401)
 
 
@@ -66,7 +80,7 @@ def api_signup(request):
     user = form.save()
     Perfil.objects.get_or_create(user=user, defaults={"curso": "", "periodo": 1})
     login(request, user)
-    return JsonResponse({"username": user.username, "email": user.email}, status=201)
+    return JsonResponse(_dados_do_usuario(user), status=201)
 
 
 def signup(request):
