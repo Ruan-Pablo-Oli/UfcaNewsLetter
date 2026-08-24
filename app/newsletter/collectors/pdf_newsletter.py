@@ -8,8 +8,11 @@ from urllib.parse import urlsplit
 import fitz
 import requests
 
+# Hosts de onde aceitamos baixar anexos. O repositório de documentos da UFCA é
+# "documentos" (português) — "documents.ufca.edu.br" não resolve em DNS, e a
+# grafia errada fazia todo anexo ser rejeitado antes do download.
 DEFAULT_ALLOWED_HOSTS = {
-    "documents.ufca.edu.br",
+    "documentos.ufca.edu.br",
     "sites.ufca.edu.br",
 }
 

@@ -5,6 +5,7 @@ import pytest
 import requests
 
 from newsletter.collectors.pdf_newsletter import (
+    DEFAULT_ALLOWED_HOSTS,
     PDFDownloadError,
     PDFExtractionError,
     PDFProcessor,
@@ -12,7 +13,7 @@ from newsletter.collectors.pdf_newsletter import (
 )
 
 PDF_URL = (
-    "https://documents.ufca.edu.br/edital.pdf"
+    "https://documentos.ufca.edu.br/edital.pdf"
 )
 
 SOURCE_URL = (
@@ -139,6 +140,14 @@ def test_rejects_disallowed_host():
         )
 
     assert session.calls == []
+
+
+def test_allowlist_usa_o_host_real_de_documentos_da_ufca():
+
+    # O repositório da UFCA é "documentos" (pt); "documents.ufca.edu.br" não
+    # resolve em DNS, e a grafia errada rejeitava todo anexo antes do download.
+    assert "documentos.ufca.edu.br" in DEFAULT_ALLOWED_HOSTS
+    assert "documents.ufca.edu.br" not in DEFAULT_ALLOWED_HOSTS
 
 
 def test_rejects_non_pdf():
