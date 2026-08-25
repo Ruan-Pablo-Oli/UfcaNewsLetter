@@ -110,7 +110,9 @@ export function Dashboard() {
   }
 
   return (
-    <div className="dashboard">
+    // O tema escuro está escopado nesta tela enquanto a direção é avaliada;
+    // promovê-lo é mover o atributo para o elemento raiz da aplicação.
+    <div className="dashboard" data-tema="escuro">
       <header className="dashboard-header">
         <div className="dashboard-header-left">
           <img src="/logo.svg" alt="UFCA Newsletter" className="dashboard-logo" />

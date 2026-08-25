@@ -174,8 +174,8 @@ input:focus, select:focus, textarea:focus {
   font-size: var(--t-medio);
   padding: 13px 20px;
   border-radius: var(--r-pequeno);
-  background: var(--tinta);
-  color: var(--papel);
+  background: var(--contraste-fundo);
+  color: var(--contraste-texto);
   box-shadow: var(--sombra-1);
 }
 
@@ -195,7 +195,7 @@ input:focus, select:focus, textarea:focus {
   border-left: 3px solid;
 }
 
-.error-message { background: rgba(214, 69, 45, 0.08); color: #a83b1f; border-color: #a83b1f; }
+.error-message { background: var(--alerta-fundo); color: var(--alerta-texto); border-color: var(--alerta); }
 .success-message { background: rgba(117, 183, 71, 0.12); color: var(--folha-escuro); border-color: var(--folha); }
 
 /* ===== Casca da aplicação ============================================= */
@@ -216,7 +216,7 @@ input:focus, select:focus, textarea:focus {
   justify-content: space-between;
   gap: var(--e4);
   padding: var(--e3) var(--e5);
-  background: rgba(250, 248, 246, 0.86);
+  background: color-mix(in srgb, var(--papel) 88%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--linha);
 }
@@ -250,7 +250,7 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--linha-forte);
   color: var(--texto-medio);
 }
-.dashboard-btn:hover { background: var(--papel-fundo); border-color: var(--tinta); color: var(--tinta); }
+.dashboard-btn:hover { background: var(--papel-fundo); border-color: var(--contraste-fundo); color: var(--texto); }
 
 .dashboard-body {
   display: flex;
@@ -357,9 +357,9 @@ input:focus, select:focus, textarea:focus {
 .filter-btn:hover { border-color: var(--tinta); color: var(--tinta); }
 
 .filter-btn.active {
-  background: var(--tinta);
-  border-color: var(--tinta);
-  color: var(--papel);
+  background: var(--contraste-fundo);
+  border-color: var(--contraste-fundo);
+  color: var(--contraste-texto);
 }
 
 .feed-list {
@@ -484,9 +484,9 @@ input:focus, select:focus, textarea:focus {
 }
 
 .feed-prazo-hoje {
-  border-color: #c2472a;
-  color: #a83b1f;
-  background: rgba(214, 69, 45, 0.1);
+  border-color: var(--alerta);
+  color: var(--alerta-texto);
+  background: var(--alerta-fundo);
   transform: rotate(-1.8deg);
   animation: pulsar 2.4s ease-in-out infinite;
 }
@@ -555,8 +555,8 @@ input:focus, select:focus, textarea:focus {
   max-width: 300px;
   font-size: var(--t-pequeno);
   line-height: 1.5;
-  color: var(--papel);
-  background: var(--tinta);
+  color: var(--contraste-texto);
+  background: var(--contraste-fundo);
   padding: 10px 14px;
   border-radius: var(--r-pequeno);
   box-shadow: var(--sombra-2);
@@ -569,7 +569,7 @@ input:focus, select:focus, textarea:focus {
   top: 100%;
   left: 18px;
   border: 6px solid transparent;
-  border-top-color: var(--tinta);
+  border-top-color: var(--contraste-fundo);
 }
 
 .feed-actions { display: flex; gap: 6px; }
@@ -584,7 +584,7 @@ input:focus, select:focus, textarea:focus {
 
 .feed-btn:hover { border-color: var(--linha-forte); background: var(--papel-fundo); }
 .feed-btn.like[aria-pressed='true'] { background: color-mix(in srgb, var(--folha) 16%, transparent); border-color: var(--folha); }
-.feed-btn.dislike[aria-pressed='true'] { background: rgba(214, 69, 45, 0.1); border-color: #c2472a; }
+.feed-btn.dislike[aria-pressed='true'] { background: var(--alerta-fundo); border-color: var(--alerta); }
 
 /* ---- Paginação ---- */
 .feed-pagination {
@@ -670,7 +670,7 @@ input:focus, select:focus, textarea:focus {
   transition: background var(--transicao), color var(--transicao);
 }
 
-.modal-close:hover { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.modal-close:hover { background: var(--contraste-fundo); color: var(--contraste-texto); border-color: var(--contraste-fundo); }
 
 .modal-title {
   font-family: var(--display);
@@ -876,7 +876,7 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
   transition: background var(--transicao), color var(--transicao);
 }
-.revisao-sair:hover { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.revisao-sair:hover { background: var(--contraste-fundo); color: var(--contraste-texto); border-color: var(--contraste-fundo); }
 
 .revisao-title { font-size: var(--t-titulo); margin: var(--e3) 0 6px; }
 
@@ -900,7 +900,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .revisao-aviso { background: color-mix(in srgb, var(--folha) 12%, transparent); color: var(--folha-escuro); border-color: var(--folha); }
-.revisao-erro { background: rgba(214, 69, 45, 0.09); color: #a83b1f; border-color: #a83b1f; }
+.revisao-erro { background: var(--alerta-fundo); color: var(--alerta-texto); border-color: var(--alerta); }
 
 .revisao-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--e4); }
 
@@ -989,13 +989,13 @@ input:focus, select:focus, textarea:focus {
 .revisao-btn:hover:not(:disabled) { transform: translateY(-1px); }
 
 .revisao-btn.aprovar { background: color-mix(in srgb, var(--folha) 16%, transparent); color: var(--folha-escuro); }
-.revisao-btn.aprovar:hover:not(:disabled) { background: var(--folha); color: #fff; }
+.revisao-btn.aprovar:hover:not(:disabled) { background: var(--folha); color: var(--papel); }
 
-.revisao-btn.descartar { background: rgba(214, 69, 45, 0.1); color: #a83b1f; }
-.revisao-btn.descartar:hover:not(:disabled) { background: #c2472a; color: #fff; }
+.revisao-btn.descartar { background: var(--alerta-fundo); color: var(--alerta-texto); }
+.revisao-btn.descartar:hover:not(:disabled) { background: var(--alerta); color: var(--papel-alto); }
 
 .revisao-btn.reclassificar { background: var(--papel-fundo); color: var(--texto-medio); }
-.revisao-btn.reclassificar:hover:not(:disabled) { background: var(--tinta); color: var(--papel); }
+.revisao-btn.reclassificar:hover:not(:disabled) { background: var(--contraste-fundo); color: var(--contraste-texto); }
 
 /* ---- Formulário de nova fonte ---- */
 .fonte-form {
@@ -1048,9 +1048,9 @@ input:focus, select:focus, textarea:focus {
 .marcacoes-aba:hover { border-color: var(--linha-forte); color: var(--tinta); }
 
 .marcacoes-aba.ativa {
-  background: var(--tinta);
-  border-color: var(--tinta);
-  color: var(--papel);
+  background: var(--contraste-fundo);
+  border-color: var(--contraste-fundo);
+  color: var(--contraste-texto);
 }
 
 /* ===== Responsivo ===================================================== */
@@ -1148,4 +1148,67 @@ input:focus, select:focus, textarea:focus {
 @keyframes correr {
   from { background-position: 180% 0; }
   to { background-position: -40% 0; }
+}
+
+
+/* ===== Ajustes finos do tema escuro ===================================
+   O que não é só troca de token: no escuro, superfície sem contorno some.
+   Um fio de luz de 1px no topo do card devolve a separação que a sombra
+   dava no claro. */
+
+[data-tema='escuro'] .feed-card,
+[data-tema='escuro'] .revisao-item,
+[data-tema='escuro'] .esqueleto,
+[data-tema='escuro'] .modal-content,
+[data-tema='escuro'] .busca-form,
+[data-tema='escuro'] .fonte-form,
+[data-tema='escuro'] .perfil-header-card,
+[data-tema='escuro'] .dash-card {
+  box-shadow: inset 0 1px 0 rgba(245, 190, 86, 0.07), var(--sombra-1);
+}
+
+[data-tema='escuro'] .feed-card:hover {
+  border-color: color-mix(in srgb, var(--cor-categoria) 45%, var(--linha));
+  box-shadow: inset 0 1px 0 rgba(245, 190, 86, 0.09), var(--sombra-2);
+}
+
+/* Os emojis da navegação ficam apagados no escuro; devolve o brilho. */
+[data-tema='escuro'] .nav-icon { filter: saturate(1.05) brightness(1.1); }
+
+/* O brilho do esqueleto vem do ocre, que no escuro é a fonte de luz. */
+[data-tema='escuro'] .esqueleto-linha {
+  background: linear-gradient(
+    100deg,
+    var(--papel-fundo) 30%,
+    color-mix(in srgb, var(--ocre) 18%, var(--papel-fundo)) 50%,
+    var(--papel-fundo) 70%
+  );
+  background-size: 220% 100%;
+}
+
+/* Campo de formulário no escuro: fundo levemente acima do card, não branco. */
+[data-tema='escuro'] input,
+[data-tema='escuro'] select,
+[data-tema='escuro'] textarea {
+  background: var(--papel);
+  color: var(--texto);
+  border-color: var(--linha-forte);
+}
+
+[data-tema='escuro'] input::placeholder { color: var(--texto-fraco); }
+
+[data-tema='escuro'] input:focus,
+[data-tema='escuro'] select:focus,
+[data-tema='escuro'] textarea:focus {
+  border-color: var(--ocre);
+  box-shadow: 0 0 0 3px rgba(245, 190, 86, 0.22);
+}
+
+[data-tema='escuro'] :focus-visible { outline-color: var(--ocre); }
+
+/* Vazio e esqueleto: tracejado claro some no escuro. */
+[data-tema='escuro'] .feed-empty,
+[data-tema='escuro'] .revisao-vazio {
+  background: color-mix(in srgb, var(--papel-alto) 60%, transparent);
+  border-color: var(--linha-forte);
 }

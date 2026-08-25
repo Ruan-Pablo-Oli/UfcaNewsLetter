@@ -71,6 +71,18 @@
   --sombra-2: 0 2px 6px rgba(83, 43, 29, 0.07), 0 8px 20px rgba(83, 43, 29, 0.05);
   --sombra-3: 0 4px 12px rgba(83, 43, 29, 0.1), 0 20px 48px rgba(83, 43, 29, 0.08);
 
+  /* Par de contraste para botões sólidos, tooltip e afins. No claro é tinta
+     sobre papel; no escuro inverte. Sem isso, cada tema precisaria de regra
+     própria em cada componente. */
+  --contraste-fundo: var(--tinta);
+  --contraste-texto: var(--papel);
+
+  /* Alerta: o vermelho não está na paleta institucional, então fica isolado
+     aqui em vez de espalhado em hex solto pelo CSS. */
+  --alerta: #c2472a;
+  --alerta-texto: #a83b1f;
+  --alerta-fundo: rgba(214, 69, 45, 0.1);
+
   --transicao: 180ms cubic-bezier(0.2, 0.6, 0.3, 1);
   --transicao-lenta: 320ms cubic-bezier(0.2, 0.6, 0.3, 1);
 
@@ -129,4 +141,68 @@ time, .tabular, [class*='-date'], [class*='-data'] {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+
+/* =======================================================================
+   Tema escuro — a mesma paleta, dessaturada para virar pastel sobre tinta.
+   Nenhuma cor nova: ocre, barro, água e folha continuam sendo o amarelo, o
+   laranja, o azul e o verde da UFCA, só que rebaixados em saturação e
+   levantados em luminosidade, que é o que os torna legíveis no escuro.
+
+   Fica num escopo (`[data-tema='escuro']`), não em `:root`: dá para aplicar
+   a uma tela só enquanto a direção é avaliada, e promover depois trocando o
+   seletor.
+   ======================================================================= */
+
+[data-tema='escuro'] {
+  /* Superfícies: tinta profunda, quente — preto puro brigaria com o marrom. */
+  --papel: #2a1710;
+  --papel-alto: #3a2118;
+  --papel-fundo: #472a1e;
+  --linha: #4e3325;
+  --linha-forte: #6b4733;
+
+  --texto: #ede3d8;
+  --texto-medio: #cbb8a8;
+  --texto-fraco: #a08b7a;
+  --text-h: var(--texto);
+
+  /* Acentos pastéis: mesmos matizes, menos saturação, mais luz. */
+  --ocre: #e8c77e;
+  --barro: #e3a96b;
+  --agua: #7fcbd4;
+  --folha: #9bcb7c;
+
+  /* As variantes "escuro" existem para texto legível. No claro elas escurecem;
+     aqui elas clareiam — mesma função, direção oposta. */
+  --ocre-escuro: #f2d9a0;
+  --barro-escuro: #f0c194;
+  --agua-escuro: #a3dde4;
+  --folha-escuro: #b8dd9e;
+
+  --contraste-fundo: var(--ocre);
+  --contraste-texto: #2a1710;
+
+  --alerta: #e8836a;
+  --alerta-texto: #f0a693;
+  --alerta-fundo: rgba(232, 131, 106, 0.14);
+
+  /* Sombra no escuro é ausência de luz, não borrão cinza: mais preta e mais
+     fechada, com um fio de luz na borda superior para o card não afundar. */
+  --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --sombra-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.25);
+  --sombra-3: 0 8px 20px rgba(0, 0, 0, 0.45), 0 24px 60px rgba(0, 0, 0, 0.35);
+
+  color: var(--texto-medio);
+  background: var(--papel);
+}
+
+/* A trama de papel se inverte: no escuro ela é luz, não tinta. */
+[data-tema='escuro'],
+body:has([data-tema='escuro']) {
+  background-color: #2a1710;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(245, 190, 86, 0.045) 1px, transparent 0);
+  background-size: 22px 22px;
 }
