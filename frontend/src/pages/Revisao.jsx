@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../api'
+import { Esqueleto } from '../components/Esqueleto'
 
 const CATEGORIAS = [
   { valor: 'edital', rotulo: 'Edital' },
@@ -88,7 +89,7 @@ export function Revisao() {
         {erro && <div className="revisao-erro" role="alert">{erro}</div>}
 
         {carregando ? (
-          <p className="revisao-vazio">Carregando…</p>
+          <Esqueleto linhas={3} />
         ) : itens.length === 0 ? (
           <p className="revisao-vazio">
             Nada pendente — toda a fila foi revisada.
@@ -98,7 +99,7 @@ export function Revisao() {
             <p className="revisao-total">{total} conteúdo(s) aguardando revisão</p>
             <ul className="revisao-lista">
               {itens.map((item) => (
-                <li key={item.id} className="revisao-item">
+                <li key={item.id} className="revisao-item" data-categoria={item.categoria_nome || undefined}>
                   <div className="revisao-meta">
                     <span className="revisao-fonte">{item.fonte_nome}</span>
                     <span className="revisao-data">

@@ -1,22 +1,83 @@
-:root {
-  --marrom: #532B1D;
-  --amarelo: #F5BE56;
-  --laranja: #E8913A;
-  --azul: #50BDCA;
-  --verde: #75B747;
+/* Fontes auto-hospedadas: nada depende de CDN, e a tipografia não some se a
+   rede cair. Fraunces é variável (eixos SOFT/WONK) e dá o tom editorial de
+   cordel; Archivo carrega a interface. */
+@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/archivo';
 
+:root {
+  /* ---- Paleta institucional (inalterada) --------------------------------
+     Os nomes descrevem a função no produto; os valores são os mesmos de
+     sempre, porque a identidade de cor da UFCA não muda. */
+  --tinta: #532B1D;   /* marrom — texto forte, superfícies escuras */
+  --ocre: #F5BE56;    /* amarelo — destaque, marca */
+  --barro: #E8913A;   /* laranja — urgência */
+  --agua: #50BDCA;    /* azul — informação, links */
+  --folha: #75B747;   /* verde — confirmação */
+
+  /* Nomes antigos preservados: outros arquivos ainda os usam. */
+  --marrom: var(--tinta);
+  --amarelo: var(--ocre);
+  --laranja: var(--barro);
+  --azul: var(--agua);
+  --verde: var(--folha);
   --marrom-light: #7a4a3a;
   --marrom-dark: #3a1e14;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Versões escuras dos mesmos matizes, para texto sobre fundo claro passar
+     em contraste — o azul e o verde puros não passariam. */
+  --agua-escuro: #1d6a73;
+  --folha-escuro: #3f7128;
+  --barro-escuro: #99500f;
+  --ocre-escuro: #7a5a10;
 
-  font: 16px/145% var(--sans);
-  letter-spacing: 0.18px;
+  /* ---- Papel e texto ---- */
+  --papel: #faf8f6;
+  --papel-alto: #ffffff;
+  --papel-fundo: #f2ece6;
+  --linha: #e0d6ce;
+  --linha-forte: #c4b5a8;
+  --texto: #3a2a1e;
+  --texto-medio: #6b5a4a;
+  --texto-fraco: #8a7a6a;
+  --text-h: var(--texto);
+
+  /* ---- Tipografia ---- */
+  --display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  --sans: 'Archivo Variable', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: var(--display);
+  --mono: ui-monospace, 'SF Mono', Consolas, monospace;
+
+  /* Escala fluida: o mesmo passo em telas pequenas e grandes. */
+  --t-micro: 0.6875rem;
+  --t-mini: 0.75rem;
+  --t-pequeno: 0.8125rem;
+  --t-base: 0.9375rem;
+  --t-medio: 1.0625rem;
+  --t-grande: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  --t-titulo: clamp(1.5rem, 1.2rem + 1.4vw, 2.125rem);
+  --t-display: clamp(2rem, 1.4rem + 2.6vw, 3.25rem);
+
+  /* ---- Ritmo, forma e profundidade ---- */
+  --e1: 4px; --e2: 8px; --e3: 12px; --e4: 16px;
+  --e5: 24px; --e6: 32px; --e7: 48px; --e8: 64px;
+
+  --r-pequeno: 8px;
+  --r-medio: 14px;
+  --r-grande: 20px;
+  --r-pilula: 999px;
+
+  /* Sombra em tom de tinta, não cinza: cinza puro sobre papel quente suja. */
+  --sombra-1: 0 1px 2px rgba(83, 43, 29, 0.06);
+  --sombra-2: 0 2px 6px rgba(83, 43, 29, 0.07), 0 8px 20px rgba(83, 43, 29, 0.05);
+  --sombra-3: 0 4px 12px rgba(83, 43, 29, 0.1), 0 20px 48px rgba(83, 43, 29, 0.08);
+
+  --transicao: 180ms cubic-bezier(0.2, 0.6, 0.3, 1);
+  --transicao-lenta: 320ms cubic-bezier(0.2, 0.6, 0.3, 1);
+
+  font: var(--t-base)/1.55 var(--sans);
   color-scheme: light;
-  color: #4a4a4a;
-  background: #faf8f6;
+  color: var(--texto-medio);
+  background: var(--papel);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -25,10 +86,47 @@
 
 body {
   margin: 0;
+  /* Textura de papel: uma trama só, em tom de tinta — o suficiente para o
+     fundo não ser cinza chapado, sem competir com o conteúdo. */
+  background-color: var(--papel);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(83, 43, 29, 0.035) 1px, transparent 0);
+  background-size: 22px 22px;
 }
 
-h1, h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h1, h2, h3 {
+  font-family: var(--display);
+  /* Fraunces tem eixos próprios: SOFT arredonda os terminais e WONK inclina o
+     "g" e o "y". Um toque, não a fonte inteira torta. */
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  font-weight: 600;
+  color: var(--texto);
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+/* Números de data, contagem e intervalo alinham em coluna. */
+time, .tabular, [class*='-date'], [class*='-data'] {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 2px;
+  border-radius: var(--r-pequeno);
+}
+
+::selection {
+  background: var(--ocre);
+  color: var(--tinta);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

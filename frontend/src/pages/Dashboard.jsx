@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api'
+import { Esqueleto } from '../components/Esqueleto'
 import { ReasonTooltip } from '../components/ReasonTooltip'
 
 const UM_DIA = 24 * 60 * 60 * 1000
@@ -230,7 +231,7 @@ export function Dashboard() {
           )}
 
           {loading && page === 1 && (
-            <p style={{ marginTop: 32, color: '#999' }}>Carregando...</p>
+            <Esqueleto linhas={4} />
           )}
 
           {!loading && filtered.length === 0 && (
@@ -252,6 +253,7 @@ export function Dashboard() {
                 <div
                   key={item.id}
                   className="feed-card"
+                  data-categoria={item.categoria || undefined}
                   onClick={() => setModalItem(item)}
                 >
                   <div className="feed-card-header">

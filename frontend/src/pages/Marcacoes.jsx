@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../api'
+import { Esqueleto } from '../components/Esqueleto'
 
 const ABAS = [
   { tipo: 'negativo', rotulo: 'Irrelevantes', vazio: 'Você não marcou nenhum conteúdo como irrelevante.' },
@@ -95,13 +96,13 @@ export function Marcacoes() {
         {erro && <div className="revisao-erro" role="alert">{erro}</div>}
 
         {carregando ? (
-          <p className="revisao-vazio">Carregando…</p>
+          <Esqueleto linhas={3} />
         ) : itens.length === 0 ? (
           <p className="revisao-vazio">{abaAtual.vazio}</p>
         ) : (
           <ul className="revisao-lista">
             {itens.map((item) => (
-              <li key={item.id} className="revisao-item">
+              <li key={item.id} className="revisao-item" data-categoria={item.categoria || undefined}>
                 <div className="revisao-meta">
                   {item.categoria && (
                     <span className="revisao-categoria">{item.categoria}</span>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api'
+import { Esqueleto } from '../components/Esqueleto'
 
 export function Busca() {
   const { user, logout } = useAuth()
@@ -178,7 +179,7 @@ export function Busca() {
             </div>
           </form>
 
-          {loading && <p style={{ marginTop: 32, color: '#999' }}>Buscando...</p>}
+          {loading && <Esqueleto linhas={3} />}
 
           {!loading && buscou && count === 0 && (
             <div className="feed-empty">
@@ -194,7 +195,8 @@ export function Busca() {
 
           <div className="feed-list">
             {resultados.map((item) => (
-              <div key={item.id} className="feed-card">
+              <div key={item.id} className="feed-card"
+                  data-categoria={item.categoria || undefined}>
                 <div className="feed-card-header">
                   <span className="feed-category">{item.categoria}</span>
                   <span className="feed-source">{item.fonte}</span>

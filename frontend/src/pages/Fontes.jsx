@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../api'
+import { Esqueleto } from '../components/Esqueleto'
 
 // Só os tipos com coletor implementado coletam de fato; `pdf` existe no modelo
 // mas o orquestrador o pula, então avisamos em vez de deixar cadastrar às cegas.
@@ -195,7 +196,7 @@ export function Fontes() {
         </form>
 
         {carregando ? (
-          <p className="revisao-vazio">Carregando…</p>
+          <Esqueleto linhas={3} />
         ) : fontes.length === 0 ? (
           <p className="revisao-vazio">Nenhuma fonte cadastrada.</p>
         ) : (
