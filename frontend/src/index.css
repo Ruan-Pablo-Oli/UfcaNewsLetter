@@ -156,33 +156,36 @@ time, .tabular, [class*='-date'], [class*='-data'] {
    ======================================================================= */
 
 [data-tema='escuro'] {
-  /* Superfícies: tinta profunda, quente — preto puro brigaria com o marrom. */
-  --papel: #2a1710;
-  --papel-alto: #3a2118;
-  --papel-fundo: #472a1e;
-  --linha: #4e3325;
-  --linha-forte: #6b4733;
+  /* Superfícies: o card É o marrom institucional #532B1D — o mesmo fundo da
+     tela de login. O fundo da página fica um degrau abaixo, para o card
+     flutuar. A primeira tentativa (#2a1710) ficou perto demais do preto: o
+     marrom da UFCA não é escuro, é terroso, e o produto tem que parecer isso. */
+  --papel: #3e2015;
+  --papel-alto: #532b1d;
+  --papel-fundo: #63392a;
+  --linha: #6e4634;
+  --linha-forte: #8a5c46;
 
-  --texto: #ede3d8;
-  --texto-medio: #cbb8a8;
-  --texto-fraco: #a08b7a;
+  --texto: #f4ebe2;
+  --texto-medio: #d8c6b6;
+  --texto-fraco: #bfa995;
   --text-h: var(--texto);
 
   /* Acentos pastéis: mesmos matizes, menos saturação, mais luz. */
-  --ocre: #e8c77e;
-  --barro: #e3a96b;
-  --agua: #7fcbd4;
-  --folha: #9bcb7c;
+  --ocre: #f0ce8c;
+  --barro: #edb47a;
+  --agua: #8fd4dc;
+  --folha: #a8d48c;
 
   /* As variantes "escuro" existem para texto legível. No claro elas escurecem;
      aqui elas clareiam — mesma função, direção oposta. */
-  --ocre-escuro: #f2d9a0;
-  --barro-escuro: #f0c194;
-  --agua-escuro: #a3dde4;
-  --folha-escuro: #b8dd9e;
+  --ocre-escuro: #f6dfae;
+  --barro-escuro: #f4cba4;
+  --agua-escuro: #ade3ea;
+  --folha-escuro: #c3e3ad;
 
   --contraste-fundo: var(--ocre);
-  --contraste-texto: #2a1710;
+  --contraste-texto: #3e2015;
 
   --alerta: #e8836a;
   --alerta-texto: #f0a693;
@@ -190,9 +193,9 @@ time, .tabular, [class*='-date'], [class*='-data'] {
 
   /* Sombra no escuro é ausência de luz, não borrão cinza: mais preta e mais
      fechada, com um fio de luz na borda superior para o card não afundar. */
-  --sombra-1: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --sombra-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.25);
-  --sombra-3: 0 8px 20px rgba(0, 0, 0, 0.45), 0 24px 60px rgba(0, 0, 0, 0.35);
+  --sombra-1: 0 1px 2px rgba(26, 12, 6, 0.25);
+  --sombra-2: 0 2px 8px rgba(26, 12, 6, 0.3), 0 10px 24px rgba(26, 12, 6, 0.22);
+  --sombra-3: 0 8px 20px rgba(26, 12, 6, 0.4), 0 24px 60px rgba(26, 12, 6, 0.3);
 
   color: var(--texto-medio);
   background: var(--papel);
@@ -201,8 +204,8 @@ time, .tabular, [class*='-date'], [class*='-data'] {
 /* A trama de papel se inverte: no escuro ela é luz, não tinta. */
 [data-tema='escuro'],
 body:has([data-tema='escuro']) {
-  background-color: #2a1710;
+  background-color: #3e2015;
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(245, 190, 86, 0.045) 1px, transparent 0);
+    radial-gradient(circle at 1px 1px, rgba(245, 190, 86, 0.05) 1px, transparent 0);
   background-size: 22px 22px;
 }
